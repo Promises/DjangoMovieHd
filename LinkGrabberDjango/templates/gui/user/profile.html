@@ -1,0 +1,52 @@
+{% extends 'gui/base.html' %}
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+{% block content %}
+
+
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-6 col-sm-offset-3">
+                <h1>{{ title }}</h1>
+                <hr/>
+                <input id="great" type="checkbox" value="1" checked>
+                <p>
+                    <a class="toggle-btn" data-href="{% url "AutoPlayApiToggle" %}"
+                       data-autoplay="{{ settings.profile.autoplaybest }}"
+                       href="{% url "AutoPlaySwitch" %}">{{ settings.profile.autoplaybest }} Toggle</a>
+                </p>
+            </div>
+        </div>
+    </div>
+    <script>
+        function updatetext(btn, newState) {
+            btn.text(newState)
+        }
+        $(".toggle-btn").click(function (e) {
+            e.preventDefault()
+            var this_ = $(this)
+            var toggleurl = this_.attr("data-href")
+            var autoplaybool = this_.attr("data-autoplay")
+            $.ajax({
+                url: toggleurl,
+                method: "get",
+                data: {},
+                success: function (data) {
+                    console.log(data)
+                    updatetext(this_, data.autoplay)
+                }, error: function (error) {
+                    console.log(error)
+                    console.log("error")
+
+                }
+            })
+        })
+
+    </script>
+{% endblock %}
+<script>
+{% block jquery %}
+           options = {/* see below */};
+        $("input#great").switchButton(options);
+{% endblock %}
+</script>

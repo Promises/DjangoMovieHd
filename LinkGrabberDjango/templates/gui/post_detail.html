@@ -1,0 +1,93 @@
+{% extends 'gui/base.html' %}
+{% load links_extras %}
+{% block content %}
+    <div class="container jumbotron">
+        <div class="row justify-content-md-center row-eq-height">
+            <div class="col-md-1"></div>
+
+            <div class="col-md-4 thumbnail">
+                <img src="{{ poster }}">
+                <div class="caption">
+                    <small class="text-muted">Year: {{ startyear }} </small>
+
+                    <small class="text-muted pull-right">Rating: {{ rating }}</small>
+                </div>
+            </div>
+            <div class="col-md-1"></div>
+            <div class="col-md-5">
+                <p class="h1">
+                    <small>{{ title }}</small>
+                </p>
+                <div class="scrollable-menu list-group">
+
+                    {% for post in posts %}
+
+                        <form action="{% url 'links' %}" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="epid" value="{{ post.id }}">
+                            <input type="hidden" name="epname" value="{{ post.title }}">
+                            <input type="hidden" name="showid" value="{{ showid }}">
+
+                            <button name="foo" value="{{ title }}" class="list-group-item
+                                    {% if user.is_authenticated %}{% if post.id|is_in:seen %}list-group-item-info{% endif %}{% endif %}">
+                                {{ post.title }}
+                            </button>
+                        </form>
+
+
+                    {% endfor %}
+                </div>
+            </div>
+
+        <script>
+            var episodes = {{ jsoneps|safe }};
+            for(key in episodes){
+console.log(episodes[key].title);
+console.log(episodes[key].title.substring(episodes[key].title.lastIndexOf("S")+1,episodes[key].title.lastIndexOf("E")));
+};
+        </script>
+        <!-- test-->
+          <div class="col-md-5">
+                <p class="h1">
+                    <small>{{ title }}</small>
+                </p>
+                <div class="scrollable-menu list-group">
+
+                    {% for post in posts %}
+
+                        <form action="{% url 'links' %}" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="epid" value="{{ post.id }}">
+                            <input type="hidden" name="epname" value="{{ post.title }}">
+                            <input type="hidden" name="showid" value="{{ showid }}">
+
+                            <button name="foo" value="{{ title }}" class="list-group-item
+                                    {% if user.is_authenticated %}{% if post.id|is_in:seen %}list-group-item-info{% endif %}{% endif %}">
+                                {{ post.title }}
+                            </button>
+                        </form>
+
+
+                    {% endfor %}
+                </div>
+            </div>
+
+                <!-- test-->
+
+            <div class="col-md-1"></div>
+
+        </div>
+        <div class="row justify-content-md-center row-eq-height">
+            <div class="col-md-1"></div>
+
+            <div class="col-md-10 container">
+                <p class="lead">{{ desc }}</p>
+            </div>
+
+            <div class="col-md-1"></div>
+
+        </div>
+    </div>
+
+
+{% endblock %}

@@ -1,0 +1,12 @@
+<!-- This is the search_results.html sub-template -->
+{% if query %}
+	<h3>You searched for: <i>{{ query }}</i></h3>
+	<p>{{ title }}</p>
+	{% if items %}
+		<ul>
+		{% for item in items %}
+			<li>{{ item.title }}</li>
+		{% endfor %}
+		</ul>
+	{% endif %}
+{% endif %}

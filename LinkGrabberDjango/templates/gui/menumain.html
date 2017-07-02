@@ -1,0 +1,21 @@
+{% extends 'gui/base.html' %}
+{% block content %}
+    <div class="container" style="width: auto;">
+    {% for post in posts %}
+        {% if forloop.first %}<div class="row justify-content-center" ><div class="col-md-2 justify-content-center"></div>{% endif %}
+    <div class="col-md-2 justify-content-center">
+<div class="thumbnail">
+          <a href="{% url 'post_detail' id=post.id %}">
+            <img src="{{ post.poster }}" alt="Lights" style="width:100%">
+            <div class="caption text-area">
+              <p class="text-center text-bold">{{ post.title }}</p>
+            </div>
+          </a>
+        </div>
+        </div>
+    {% if forloop.counter|divisibleby:4 %}<div class="col-md-2 justify-content-center"></div></div><div class="row justify-content-center"><div class="col-md-2 justify-content-center"></div>{% endif %}
+    {% if forloop.last %}</div>{% endif %}
+{% endfor %}
+
+</div>
+{% endblock %}

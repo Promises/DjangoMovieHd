@@ -1,0 +1,81 @@
+{% extends 'gui/base.html' %}
+{% load links_extras %}
+{% load staticfiles %}
+{% block content %}
+    <div class="post">
+        <script src="{% static "js/videojs-chromecast.js" %}"></script>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="wrapper">
+                    <div class="videocontent center-block">
+                        <video id="demo_player" class="video-js vjs-default-skin vjs-big-play-centered vjs-16-9"
+                               controls preload="auto" width="640" height="264"
+                               poster="http://video-js.zencoder.com/oceans-clip.png"
+                               data-setup="{}">
+                            <source src="{{ post.link|svensk }}" type="video/mp4">
+                            <source src="{{ post.link|svensk }}" type="video/webm">
+                            <p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to
+                                a web browser that <a href="http://videojs.com/html5-video-support/" target="_blank">supports
+                                    HTML5 video</a></p>
+                        </video>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+        {% if isshow %}
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <nav aria-label="...">
+
+                    <ul class="pager">
+                        {% if prev %}
+                        <form action="{% url 'links' %}" method="post" id="prev">
+
+                            {% csrf_token %}
+                            <input type="hidden" name="foo" value="{{ show }}">
+                            <input type="hidden" name="epname" value="{{ prev.title }}">
+                            <input type="hidden" name="showid" value="{{ showid }}">
+                            <input type="hidden" name="epid" value="{{ prev.id }}">
+                            <li class="previous">
+
+                                <a href="javascript:{}" onclick="document.getElementById('prev').submit();"><span
+                                        aria-hidden="true">&larr;</span>{{ prev.title }}</a>
+
+
+                            </li>
+                        </form>
+                        {% endif %}
+
+                        <form action="{% url 'links' %}" method="post" id="next">
+                            {% csrf_token %}
+                            <input type="hidden" name="foo" value="{{ show }}">
+                            <input type="hidden" name="epname" value="{{ next.title }}">
+                            <input type="hidden" name="showid" value="{{ showid }}">
+                            <input type="hidden" name="epid" value="{{ next.id }}">
+                            <li class="next">
+
+                                <a href="javascript:{}" onclick="document.getElementById('next').submit();">{{ next.title }}<span aria-hidden="true">&rarr;</span></a>
+                            </li>
+                        </form>
+
+                    </ul>
+                </nav>
+
+                {% endif %}
+            </div>
+
+        </div>
+        <script>
+
+            var player = videojs('video', {
+                chromecast: {
+                    appId: 'CC1AD845'
+                }
+            });
+        </script>
+
+        <hr>
+    </div>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends 'gui/base.html' %}
+{% load links_extras %}
+{% block content %}
+    <div class="row">
+        <div class="col-md-6 col-sm-offset-3">
+            <div class="list-group">
+            {% for post in posts %}
+                  <a href="{% url 'plays' epid=post.chapter_id streamid=post.id showid=showid%}" class="list-group-item">
+                    {{ post.name }}
+                  </a>
+            {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
