@@ -1,11 +1,12 @@
 import base64
+import hashlib
+import json
+import time
+
+import requests
 from Crypto import Random
 from Crypto.Cipher import AES
-import time
-import hashlib
-import requests
 from bs4 import BeautifulSoup
-import json
 
 key = "darth89@1234bhgdrasew@7813451234"
 bs = 32
@@ -23,7 +24,6 @@ def encrypt(raw):
 def decrypt(enc):
     enc = base64.b64decode(enc)
     iv = enc[:AES.block_size]
-    print iv
     cipher = AES.new(key, AES.MODE_CBC, iv)
     return _unpad(cipher.decrypt(enc[AES.block_size:])).decode('utf-8')
 
@@ -39,7 +39,7 @@ def _unpad(s):
 def getToken():
     result = requests.get("http://appmoviehd.info/")
     c = result.content
-    soup = BeautifulSoup(c)
+    soup = BeautifulSoup(c,"lxml")
     versiontxt = (soup.find_all("span", class_="version")[0].string)
     version = "".join(_ for _ in versiontxt if _ in ".1234567890")
     token = "ddteam@android@nanana" + time
@@ -52,6 +52,8 @@ def getToken():
 
 def createmainlisting(name):
     # Once we're done creating them, we just add the items to the menu
+    #print name
+
     videourl = baseurl + "movies?type=search&keyword=" + name + "&page=" + "1" + "&count=5000&"
     r = requests.get(videourl + getToken()).text
 
@@ -64,10 +66,11 @@ def createmainlisting(name):
 
 
 def getpopular(type):
-    videourl = baseurl + type + "?type=popular&page=" + "1" + "&count=10&"
+    videourl = baseurl + type + "?type=updated&page=" + "1" + "&count=10&"
     r = requests.get(videourl + getToken()).text
 
     testtext = decrypt(r)
+    #print testtext
     text = testtext[testtext.index("{"):][:-1]
 
     videos2 = json.loads(text)
@@ -102,6 +105,7 @@ def getstreams(id):
     test3 = decrypt(r)
     text3 = test3[test3.index("{"):][:-1]
     videos3 = json.loads('{"bar":[' + text3 + "}")
+    print test3
     return videos3["bar"]
 
 
@@ -112,3 +116,23 @@ def find_between(s, first, last):
         return s[start:end]
     except ValueError:
         return ""
+
+
+def getToplist(type, page, sort):
+    allvids = []
+    notlast = "yes"
+    currentpage = 1
+
+    while notlast == "yes":
+        videourl = baseurl + type + "?type=" + sort + "&page=" + str(currentpage) + "&count=5000&"
+        r = requests.get(videourl + getToken()).text
+        testtext = decrypt(r)
+        text = testtext[testtext.index("{"):][:-1]
+        videos2 = json.loads(text)
+        allvids += videos2["films"]
+        notlast = videos2["more"]
+        #print videos2["more"]
+        #print currentpage
+        currentpage += 1
+
+    return allvids

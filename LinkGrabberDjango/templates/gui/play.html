@@ -7,17 +7,33 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="wrapper">
-                    <div class="videocontent center-block">
-                        <video id="demo_player" class="video-js vjs-default-skin vjs-big-play-centered vjs-16-9"
-                               controls preload="auto" width="640" height="264"
-                               poster="http://video-js.zencoder.com/oceans-clip.png"
-                               data-setup="{}">
-                            <source src="{{ post.link|svensk }}" type="video/mp4">
-                            <source src="{{ post.link|svensk }}" type="video/webm">
-                            <p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to
-                                a web browser that <a href="http://videojs.com/html5-video-support/" target="_blank">supports
-                                    HTML5 video</a></p>
-                        </video>
+                    <div class="embed-responsive embed-responsive-16by9 videocontent center-block">
+                        {% if isyt %}
+                            <iframe class="embed-responsive-item" id="wpm"
+                                    src="{{ post.link|urldecode }}"
+                                    scrolling="no" marginwidth="0" marginheight="0" frameborder="1px" vspace="0"
+                                    hspace="0" allowfullscreen="true" webkitallowfullscreen="true"
+                                    mozallowfullscreen="true"></iframe>
+                        {% else %}
+                            <video id="demo_player" class="video-js vjs-default-skin vjs-big-play-centered vjs-16-9"
+                                   controls preload="auto"
+                                   poster="{{ poster }}"
+                                   data-setup="{}">
+                                <source src="{{ post.link|urldecode }}" type="video/mp4">
+                                <source src="{{ post.link|urldecode }}" type="video/webm">
+                                {% if isshow %}
+                                {% else %}
+                                    <track kind="captions" src="/subtitle.vtt/{{ show }}/0" srclang="en" label="English"
+                                           default>
+                                {% endif %}
+
+                                <p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading
+                                    to
+                                    a web browser that <a href="https://videojs.com/html5-video-support/"
+                                                          target="_blank">supports
+                                        HTML5 video</a></p>
+                            </video>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -25,12 +41,12 @@
 
         </div>
         {% if isshow %}
-        <div class="row">
+            <div class="row">
             <div class="col-md-8 col-md-offset-2">
-                <nav aria-label="...">
+            <nav aria-label="...">
 
-                    <ul class="pager">
-                        {% if prev %}
+                <ul class="pager">
+                    {% if prev %}
                         <form action="{% url 'links' %}" method="post" id="prev">
 
                             {% csrf_token %}
@@ -46,36 +62,71 @@
 
                             </li>
                         </form>
-                        {% endif %}
+                    {% endif %}
 
-                        <form action="{% url 'links' %}" method="post" id="next">
-                            {% csrf_token %}
-                            <input type="hidden" name="foo" value="{{ show }}">
-                            <input type="hidden" name="epname" value="{{ next.title }}">
-                            <input type="hidden" name="showid" value="{{ showid }}">
-                            <input type="hidden" name="epid" value="{{ next.id }}">
-                            <li class="next">
 
-                                <a href="javascript:{}" onclick="document.getElementById('next').submit();">{{ next.title }}<span aria-hidden="true">&rarr;</span></a>
-                            </li>
-                        </form>
+                    <li class="next">
 
-                    </ul>
-                </nav>
+                        <a href="javascript:{}" onclick="playnext();">Next<span
+                                aria-hidden="true">&rarr;</span></a>
+                    </li>
 
-                {% endif %}
-            </div>
+                </ul>
+            </nav>
+
+        {% endif %}
+        </div>
 
         </div>
         <script>
+            var thisepisode = {{ id }};
+            var timesexecuted = 0;
 
-            var player = videojs('video', {
+            var player = videojs('demo_player', {
                 chromecast: {
                     appId: 'CC1AD845'
-                }
+                },
+                "autoplay": true,
             });
+            {% if isshow %}
+                function playnext() {
+                    player.pause();
+                    $.ajax({
+                        url: '/api/media/GetNextEpisode',
+                        data: {
+                            'showid': {{ showid }},
+                            "epid": thisepisode
+                        },
+                        dataType: 'json',
+                        success: function (data) {
+                            player.src({"type": "video/mp4", "src": data.shows.link});
+                            document.title = data.shows.title;
+
+                            thisepisode = data.shows.nextepid;
+                            player.play();
+                            executed = true;
+
+                        }
+
+                    });
+                }
+
+                {%  if request.user.profile.autoplaynext  %}
+                    player.on('ended', function () {
+                        if (timesexecuted < 5) {
+                            playnext();
+                            timesexecuted++;
+                        }
+
+
+                    });
+                {%  endif  %}
+            {%  endif  %}
+
+
         </script>
 
         <hr>
     </div>
+
 {% endblock %}

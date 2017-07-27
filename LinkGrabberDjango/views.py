@@ -1,47 +1,82 @@
 from __future__ import print_function
 
-import unicodedata
+import urllib
 
+from BeautifulSoup import BeautifulSoup
+import HTMLParser
+import json
+import re
+import unicodedata
+import zipfile
+from StringIO import StringIO
+from collections import Counter
+
+import magic
+import requests
+from digg_paginator import DiggPaginator
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse
-from django.views.generic import View
 from django.template import loader
-from LinkGrabberDjango import apigrabber
-from LinkGrabberDjango.forms import User
-from .forms import UserForm, UserLoginForm
-from .models import watched, Profile
-from rest_framework.views import APIView
-from rest_framework.response import Response
+from django.urls import reverse
+from django.utils import timezone
+from django.views.generic import View
+from notifications.signals import notify
+from pycaption import CaptionConverter, SRTReader, WebVTTWriter
 from rest_framework import authentication, permissions
-import json
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from LinkGrabberDjango import apigrabber
+from LinkGrabberDjango.forms import User, FeatureRequestForm
+from .api import subscene
+from .forms import UserForm, UserLoginForm
+from .models import watched, Profile, favourite, FeatureRequest
 
 
 def post_list(request):
-    # return render(request, 'gui/menumain.html', {})
     pagename = "Search Results"
-    a = request.GET.get('id', 'The Walking Dead')
-    return render(request, 'gui/menumain.html', {"posts": apigrabber.createmainlisting(a), "pagename": pagename})
+    a = request.GET.get('id', 'The Walking Dead').replace("'", r"\'")
+    results = apigrabber.createmainlisting(a)
+    return render(request, 'gui/menumain.html', {"posts": results, "pagename": pagename})
 
 
 def post_detail(request, id):
     dict = apigrabber.createdetails(id)
     seen = False
-    jsoneps =False
-    print(len(dict["posts"]))
+    jsoneps = False
+    isFavourite = False
+    seenlist = []
+    jsoneps = json.dumps(dict["posts"])
+    isshow = False
     if len(dict["posts"]) >= 10:
         if apigrabber.find_between(dict["posts"][1]["title"], "S", "E"):
             isshow = True
-            print ("ishow")
-            jsoneps = json.dumps(dict["posts"])
 
     if request.user.is_authenticated():
+        try:
+            favourite.objects.get(user=request.user.username,
+                                  showid=id, )
+            isFavourite = True
+
+
+            # if we get this far, we have an exact match for this form's data
+        except favourite.DoesNotExist:
+            # because we didn't get a match
+            isFavourite = False
+
+            pass
         seen = watched.objects.filter(user=request.user.username,
                                       showid=id, )
+        for key in seen:
+            seenlist.append(key.epid)
+    jsonseen = json.dumps(seenlist)
 
     return render(request, 'gui/post_detail.html', {'posts': dict["posts"],
                                                     'jsoneps': jsoneps,
+                                                    "isplay": True,
                                                     "desc": dict["desc"],
                                                     "rating": dict['rating'],
                                                     "startyear": dict['startyear'],
@@ -49,11 +84,13 @@ def post_detail(request, id):
                                                     "poster": dict['poster'],
                                                     "state": dict['state'],
                                                     "genre": dict['genre'],
+                                                    "isshow": isshow,
                                                     "showid": id,
                                                     "seen": seen,
+                                                    "jsonseen": jsonseen,
+                                                    "isfav": isFavourite,
                                                     "pagename": dict["title"].encode("utf-8").strip()
                                                     })
-
 
 
 def play(request, epid, streamid, showid):
@@ -65,14 +102,13 @@ def play(request, epid, streamid, showid):
     nextep = False
     prevep = False
     isshow = False
-    show = showinfo["title"]
+    show = showinfo["title"].encode('utf-8').strip()
+    poster = showinfo["poster"]
 
     if len(otherepisodes) > 3:
         eptitle = otherepisodes[1]['title'].encode('utf-8').strip().replace(u'\xa0', u' ')
-        # if len(otherepisodes) == index:
-        print(str(len(otherepisodes)) + ", " + str(index))
         if len(otherepisodes) == index + 1:
-            print("first episodes")
+            print("first episode")
         else:
             prevep = otherepisodes[index + 1]
         if apigrabber.find_between(eptitle, "S", "E"):
@@ -81,22 +117,95 @@ def play(request, epid, streamid, showid):
             nextep = otherepisodes[index - 1]
 
     showid = showid
+    if isshow:
+        pagename =  otherepisodes[index]['title'].encode('utf-8').strip()
+    else:
+        pagename = show
+
+    isplay = True
+    post = (item for item in data if item["type"] == int(streamid)).next()
+    isyt = False
+    if post["link"].startswith("GoogleDrive"):
+        isyt = True
+
     return render(request, 'gui/play.html', {'title': id,
-                                             "pagename": otherepisodes[index]['title'].encode('utf-8').strip().replace(
-                                                 u'\xa0', u' '),
-                                             "post": (item for item in data if item["id"] == streamid).next(),
+                                             "isplay": isplay,
+                                             "id": epid,
+                                             "poster": poster,
+                                             "pagename": pagename,
+                                             "isyt": isyt,
+                                             "post": post,
                                              "next": nextep, "prev": prevep, "show": show, "showid": showid,
                                              "isshow": isshow})
+
+
+
+def subtitle(request, title, no):
+    t = re.sub('\(.*?\)', '', title)[:-1]
+    film = subscene.search(t, "English")
+
+    zip = requests.get(subscene.zipped_url(film.subtitles[int(no)]))
+
+    fp = StringIO(zip.content)
+    archive = zipfile.ZipFile(fp, 'r')
+    srt = archive.read(archive.namelist()[0])
+    soup = BeautifulSoup(srt)
+    print(soup.originalEncoding)
+    converter = CaptionConverter()
+    unistring = unicode(srt.decode(soup.originalEncoding))
+    if "utf-8" in soup.originalEncoding:
+        unistring = unistring[1:]
+    converter.read(unistring, SRTReader())
+    html_parser = HTMLParser.HTMLParser()
+
+    return HttpResponse(html_parser.unescape(converter.write(WebVTTWriter()).encode('ascii', 'ignore')),
+                        content_type="text/vtt")
 
 
 def home(request):
     poptv = apigrabber.getpopular("tvshow")
     popmovies = apigrabber.getpopular("movies")
-    return render(request, 'gui/home.html', {"poptv": poptv, "popmovies": popmovies, "pagename": "Home"})
+    favourites = favourite.objects.filter(user=request.user.username, ).order_by("date").reverse()[:10]
+    #notify.send(favourite, recipient=request.user, verb='you reached level 10')
+    return render(request, 'gui/home.html',
+                  {"poptv": poptv, "popmovies": popmovies, "pagename": "Home", "favourites": favourites})
+
+
+class browseTopList(View):
+    def get(self, request):
+        type = request.GET.get('cat')
+        page = request.GET.get('page', 1)
+        sort = request.GET.get('sort', "popular")
+        toplist = apigrabber.getToplist(type, page, sort)
+        print(len(toplist))
+        paginator = DiggPaginator(toplist, 24, body=6)
+        try:
+            movies = DiggPaginator.page(paginator,number=page)
+        except PageNotAnInteger:
+            movies = DiggPaginator.page(paginator,number=1)
+        except EmptyPage:
+            movies = DiggPaginator.page(paginator,number=DiggPaginator.num_pages)
+
+        return render(request, 'gui/toplist.html',
+                      {"posts": movies, "type": type, "page": int(page), "pagename": "Browse Top List"})
+
+class browseFavourites(View):
+    def get(self, request):
+        page = request.GET.get('page', 1)
+        favourites_list = favourite.objects.filter(user=request.user.username, ).order_by("date").reverse()
+        paginator = Paginator(favourites_list, 10)
+        try:
+            favourites = paginator.page(page)
+        except PageNotAnInteger:
+            favourites = paginator.page(1)
+        except EmptyPage:
+            favourites = paginator.page(paginator.num_pages)
+        return render(request, 'gui/favourites.html',
+                      {"posts": favourites, "page": int(page), "pagename": "Browse Top List"})
+
 
 
 class links(View):
-
     def post(self, request):
         show = unicodedata.normalize("NFKD", request.POST.get("foo").replace(u'\xa0', u' '))
         epid = request.POST.get("epid")
@@ -121,22 +230,21 @@ class links(View):
                 # because we didn't get a match
                 w.save()
                 pass
-            print(user.profile.autoplaybest)
             if user.profile.autoplaybest:
                 bestq = None
-                print(links)
                 for link in links:
                     if not bestq:
                         quality = apigrabber.find_between(link["name"], "Video ", " (")
-                        if quality.encode('utf-8') == "1080p":
-                            bestq = link["id"]
+                        if link["name"].startswith("Google"):
+                            bestq = link["type"]
+                        elif quality.encode('utf-8') == "1080p":
+                            bestq = link["type"]
                         elif quality.encode('utf-8') == "720p":
-                            bestq = link["id"]
+                            bestq = link["type"]
                         elif quality.encode('utf-8') == "480p":
-                            bestq = link["id"]
+                            bestq = link["type"]
                         elif quality.encode('utf-8') == "360p":
-                            bestq = link["id"]
-                print(bestq)
+                            bestq = link["type"]
                 return redirect('plays', showid=showid, epid=epid, streamid=bestq)
         return render(request, 'gui/links.html', {'posts': links, "pagename": epname, "showid": showid})
 
@@ -185,6 +293,21 @@ class UserFormView(View):
             user.set_password(password)
             user.save()
 
+            # from_addr = 'henning@henning.tech'
+            # to_addrs = ['henning.ber@gmail.com']
+            # msg = "\r\n".join([
+            #   "From: henning@henning.tech",
+            #   "To: henning.ber@gmail.com",
+            #   "Subject: New User Registration",
+            #   "",
+            #   "New User registered " + username
+            #   ])
+            # s = SMTP()
+            # s.connect('smtp.webfaction.com:587')
+            # s.login('henningtech', 'He569348')
+            # s.sendmail(from_addr, to_addrs, msg)
+            # s.quit()
+
             user = authenticate(username=username, password=password)
             if user is not None:
                 if user.is_active:
@@ -223,11 +346,26 @@ class UserLogoutView(View):
 
 class UserProfileView(View):
     # blank form
-    def get(self, request):
+    def post(self, request):
+        form = FeatureRequestForm(request.POST)
+        if form.is_valid():
+            post = form.save(commit=False)
+            post.user = request.user
+            post.date = timezone.now()
+            post.save()
+
+        return redirect('profile')
+    def get(self, request, foo=False):
         if request.user.is_authenticated:
             title = request.user.username
+            form_class = FeatureRequestForm
             obj = get_object_or_404(User, pk=request.user.id)
-            return render(request, "gui/user/profile.html", {"title": title, "pagename": title, "settings": obj})
+            #obj.notifications.unread().mark_all_as_read()
+            requests = FeatureRequest.objects.filter(user=request.user)
+            notifications = request.user.notifications.unread().order_by('-timestamp')
+            if request.user.is_superuser:
+                requests = FeatureRequest.objects.all()
+            return render(request, "gui/user/profile.html", {'form': form_class, "title": title, "pagename": title, "settings": obj, "submitted":foo,"requests":requests,'notifications': notifications})
         return HttpResponseRedirect(reverse('home'))
 
 
@@ -236,13 +374,11 @@ class AutoPlaySwitchRedirect(View):
         user = request.user
         if user.is_authenticated:
             obj = get_object_or_404(Profile, pk=user.id)
-            print(user.username)
             if not obj.autoplaybest:
                 obj.autoplaybest = True
             else:
                 obj.autoplaybest = False
             obj.save()
-            print(obj.autoplaybest)
 
         return HttpResponseRedirect(reverse('profile'))
 
@@ -258,20 +394,215 @@ class AutoPlayApiToggle(APIView):
 
     def get(self, request, format=None):
         updated = False
-        liked = False
         user = request.user
         if user.is_authenticated():
-            obj = get_object_or_404(Profile, pk=user.id)
-            print(user.username)
-            if not obj.autoplaybest:
-                obj.autoplaybest = True
+            if not user.profile.autoplaybest:
+                user.profile.autoplaybest = True
             else:
-                obj.autoplaybest = False
-            obj.save()
+                user.profile.autoplaybest = False
+            user.save()
             updated = True
         data = {
             "updated": updated,
-            "autoplay": obj.autoplaybest,
+            "autoplay": user.profile.autoplaybest,
         }
-        print(obj.autoplaybest)
         return Response(data)
+
+class AutoPlayNextApiToggle(APIView):
+    """
+    View to toggle autplaynext for current user.
+
+    * Requires User
+    """
+    authentication_classes = (authentication.SessionAuthentication,)
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request, format=None):
+        updated = False
+        user = request.user
+        if user.is_authenticated():
+            if not user.profile.autoplaynext:
+                user.profile.autoplaynext = True
+            else:
+                user.profile.autoplaynext = False
+            user.save()
+            updated = True
+        data = {
+            "updated": updated,
+            "autoplaynext": user.profile.autoplaynext,
+        }
+        return Response(data)
+
+
+
+
+class NightModeApiToggle(APIView):
+    """
+    View to toggle Nightmode for current user.
+
+    * Requires User
+    """
+    authentication_classes = (authentication.SessionAuthentication,)
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request, format=None):
+        updated = False
+        user = request.user
+        if user.is_authenticated():
+            if not user.profile.night_mode:
+                user.profile.night_mode = True
+            else:
+                user.profile.night_mode = False
+            user.save()
+            updated = True
+        data = {
+            "updated": updated,
+            "nightmode": user.profile.night_mode,
+        }
+        return Response(data)
+
+
+
+class FavouriteApiToggle(APIView):
+    """
+    View to toggle autoplay for current user.
+
+    * Requires User
+    """
+    authentication_classes = (authentication.SessionAuthentication,)
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request, format=None):
+        updated = False
+        user = request.user
+        isFavourite = False
+        showid = request.GET.get('id')
+        dict = apigrabber.createdetails(showid)
+        isshow = False
+        if len(dict["posts"]) >= 10:
+            if apigrabber.find_between(dict["posts"][1]["title"], "S", "E"):
+                isshow = True
+
+        if user.is_authenticated():
+            w = favourite(user=user.username,
+                          showid=showid,
+                          showname=dict['title'].encode('utf-8').strip(),
+                          show=isshow,
+                          count=len(dict["posts"]),
+                          poster=dict['poster'],
+                          )
+
+            try:
+                favourite.objects.get(user=user.username,
+                                      showid=showid, ).delete()
+                isFavourite = False
+
+
+                # if we get this far, we have an exact match for this form's data
+            except favourite.DoesNotExist:
+                # because we didn't get a match
+                w.save()
+                isFavourite = True
+
+                pass
+            updated = True
+        data = {
+            "updated": updated,
+            "Favourite": isFavourite,
+        }
+        return Response(data)
+
+
+class FiveRecommended(APIView):
+    """
+    View to toggle autoplay for current user.
+
+    * Requires User
+    """
+
+    def get(self, request, format=None):
+        updated = False
+        showid = request.GET.get('id')
+        favlist = favourite.objects.filter(user__in=favourite.objects.filter(showid=showid).values_list('user')).exclude(showid=showid).values_list("showid")
+        common = Counter(favlist).most_common(6)
+        idlist = [word[0][0] for word in common]
+        queryset = favourite.objects.filter(showid__in=idlist).distinct("showid")
+        data = {"shows": [{'showid': item.showid,'showname': item.showname,'poster': item.poster} for item in queryset]}
+        return Response(data)
+
+
+class GetNextEpisodeAPI(APIView):
+    """
+    View to toggle autoplay for current user.
+
+    * Requires User
+    """
+
+    def get(self, request, format=None):
+        showid = request.GET.get('showid')
+        epid = request.GET.get('epid')
+        print(request.GET.get('epid'))
+        showinfo = apigrabber.createdetails(showid)
+        otherepisodes = showinfo["posts"]
+        index = otherepisodes.index((item for item in otherepisodes if item["id"] == epid).next())
+        nextep = otherepisodes[index - 1]
+        links = apigrabber.getstreams(nextep["id"])
+        bestq = None
+        for link in links:
+            if not bestq:
+                quality = apigrabber.find_between(link["name"], "Video ", " (")
+                if link["name"].startswith("Google"):
+                    bestq = link["type"]
+                elif quality.encode('utf-8') == "1080p":
+                    bestq = link["type"]
+                elif quality.encode('utf-8') == "720p":
+                    bestq = link["type"]
+                elif quality.encode('utf-8') == "480p":
+                    bestq = link["type"]
+                elif quality.encode('utf-8') == "360p":
+                    bestq = link["type"]
+
+        data = apigrabber.getstreams(nextep["id"])
+
+        url = urllib.unquote((item for item in data if item["type"] == int(bestq)).next()["link"]).decode('utf8')
+        print(index)
+
+
+        data = {"shows": {'nextepid': nextep["id"], 'link': url, 'title': nextep["title"]}}
+        return Response(data)
+
+
+#tests:
+def imageview(request,title):
+    zip = requests.get(title)
+
+    fakeimage = StringIO(zip.content)
+    #image_data = open(fakeimage, "rb").read()
+    return HttpResponse(fakeimage, content_type="image/png")
+
+
+@login_required
+def send_notification(request):
+    recipient_username = request.POST.get('recipient_username', None)
+
+    if recipient_username:
+        recipients = User.objects.filter(username=recipient_username)
+    else:
+        recipients = User.objects.all()
+
+    for recipient in recipients:
+        notify.send(
+            request.user,
+            recipient=recipient,
+            verb=request.POST.get('verb', '')
+        )
+
+    return HttpResponseRedirect(reverse('home'))
+
+
+@login_required
+def mark_as_read(request):
+    request.user.notifications.unread().mark_all_as_read()
+
+    return HttpResponseRedirect(reverse('home'))
+

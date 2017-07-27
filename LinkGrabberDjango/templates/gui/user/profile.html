@@ -1,52 +1,272 @@
 {% extends 'gui/base.html' %}
 {% load staticfiles %}
+{% load links_extras %}
+{% load comments %}
 {% load crispy_forms_tags %}
+{% load analytical %}
+{% load notifications_tags %}
+
+{% block extra_headers %}
+    <link href="{% static "css/profile.css" %}" rel="stylesheet" type="text/css">
+{% endblock %}
 {% block content %}
+        <script>
+        $(document).ready(function() {
+            $("#send-notification-button").popover({
+                container: "body",
+                html: true,
+                placement: "right",
+                content: function() {
+                    return $("#send-notification-popover").html();
+                },
+                trigger: "click"
+            });
+        });
+    </script>
 
 
     <div class="container">
         <div class="row">
-            <div class="col-sm-6 col-sm-offset-3">
-                <h1>{{ title }}</h1>
+            <div class="user-dashboard">
+                <h1>Settings: {{ settings.username }}</h1>
                 <hr/>
-                <input id="great" type="checkbox" value="1" checked>
-                <p>
-                    <a class="toggle-btn" data-href="{% url "AutoPlayApiToggle" %}"
-                       data-autoplay="{{ settings.profile.autoplaybest }}"
-                       href="{% url "AutoPlaySwitch" %}">{{ settings.profile.autoplaybest }} Toggle</a>
-                </p>
+                <div class="row">
+                    <div class="col-md-6 col-sm-6 col-xs-12 gutter">
+
+                        <div class="sales">
+                            <h2> Auto-Select Best Quality Link: </h2>
+
+                            <div class="btn-group">
+
+                                <!-- Rounded switch -->
+                                <label class="switch">
+                                    <input type="checkbox" id="checkboxautoplay">
+                                    <div class="slider round">
+
+                                    </div>
+                                </label>
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-sm-6 col-xs-12 gutter">
+
+                        <div class="sales">
+                            <h2> NightMode(BETA): </h2>
+
+                            <div class="btn-group">
+
+                                <!-- Rounded switch -->
+                                <label class="switch">
+                                    <input type="checkbox" id="checkboxNightMode">
+                                    <div class="slider round">
+
+                                    </div>
+                                </label>
+
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="col-md-6 col-sm-6 col-xs-12 gutter">
+
+                        <div class="sales">
+                            <h2> AutoPlayNext(BETA): </h2>
+
+                            <div class="btn-group">
+
+                                <!-- Rounded switch -->
+                                <label class="switch">
+                                    <input type="checkbox" id="checkboxAutoNext">
+                                    <div class="slider round">
+
+                                    </div>
+                                </label>
+
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="user-dashboard">
+                <h1>Feature Request</h1>
+                <hr>
+
+                <div class="row">
+                    <div class="col-md-10 col-sm-12 col-xs-12 gutter col-md-offset-1">
+                        <ul class="list-group">
+                            <div class="panel-group">
+                                {% for feature in requests %}
+                                    <div class="panel panel-default">
+                                        <div class="panel-heading">
+                                            <a data-toggle="collapse" href="#collapse{{ feature.pk }}">
+                                                {{ feature.title }}
+                                                <span class="badge pull-right">{{ feature.state|status }}</span>
+
+
+                                                {% if user.is_superuser %}
+                                                    <span class="label label-info pull-right"
+                                                          style="margin-right: 5px;">{{ feature.user.username }}</span>
+                                                {% endif %}
+                                            </a>
+                                        </div>
+                                        <div class="panel-body">
+                                            <div id="collapse{{ feature.pk }}" class="panel-collapse collapse">
+                                                <span>{{ feature.body }}</span>
+                                                <hr>
+                                                {% get_comment_count for feature as comment_count %}
+                                                {% render_comment_list for feature %}
+                                                {% get_comment_form for feature as form %}
+                                                <form action="{% comment_form_target %}" method="post">
+                                                    <div class="form-group">
+                                                        <input type="hidden" name="next" value="{{ request.path }}"/>
+                                                        {% csrf_token %}
+                                                        {% for field in form %}
+                                                            {% ifequal field.name "name" %}
+                                                                <input id="id_name" type="hidden" name="name"
+                                                                       value="{{ user.username }}"/>
+                                                            {% else %}
+                                                                {% ifequal field.name "email" %}
+                                                                    <input type="hidden" name="email"
+                                                                           value="noboy@nobody.com"
+                                                                           id="id_email"/>
+                                                                {% else %}
+                                                                    {% ifequal field.name "url" %}
+                                                                        <p style="display:none;">
+                                                                            <label for="id_url">URL:</label>
+                                                                            <input name="url" id="id_url" type="url">
+                                                                        </p>
+                                                                    {% else %}
+                                                                        {% ifequal field.name "honeypot" %}
+                                                                            <p style="display:none;">
+                                                                                <label for="id_honeypot">If you enter
+                                                                                    anything
+                                                                                    in this
+                                                                                    field
+                                                                                    your comment will be treated as
+                                                                                    spam:</label> <input
+                                                                                    name="honeypot" id="id_honeypot"
+                                                                                    type="text">
+                                                                            </p>
+                                                                        {% else %}
+                                                                            {% ifequal field.name "comment" %}
+                                                                                <label for="comment">Comment:</label>
+                                                                                <textarea class="form-control" rows="5"
+                                                                                          name="comment" id="id_comment"
+                                                                                          required=""
+
+                                                                                          maxlength="3000"></textarea>
+                                                                            {% else %}
+
+                                                                                {{ field }}
+                                                                            {% endifequal %}
+                                                                        {% endifequal %}
+                                                                    {% endifequal %}
+                                                                {% endifequal %}
+                                                            {% endifequal %}
+                                                        {% endfor %}
+                                                        <input class="btn btn-default" type="submit" name="submit"
+                                                               value="Post">
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </ul>
+                    </div>
+
+                    <div class="col-md-10 col-sm-12 col-xs-12 gutter col-md-offset-1">
+
+                        <div class="">
+
+                            <form role="form" action="" method="post">
+                                {% csrf_token %}
+                                <div class="form-group">
+
+
+                                    <label for="id_title">Title:</label>
+                                    <input type="text" name="title" required id="id_title" maxlength="100"
+                                           class="form-control"
+                                           placeholder="Title">
+
+
+                                    <label for="id_body">Description:</label>
+                                    <textarea name="body" id="id_body" class="form-control" rows="3" required
+                                              placeholder="Describe your idea"></textarea>
+                                    <span>Please note: We can't change the contents of the site, this is only a web interface for the Movie HD app.</span>
+                                    <br>
+                                    <button class="btn btn-success" type="submit">Submit</button>
+
+                                </div>
+
+                            </form>
+
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <script>
-        function updatetext(btn, newState) {
-            btn.text(newState)
-        }
-        $(".toggle-btn").click(function (e) {
-            e.preventDefault()
-            var this_ = $(this)
-            var toggleurl = this_.attr("data-href")
-            var autoplaybool = this_.attr("data-autoplay")
-            $.ajax({
-                url: toggleurl,
-                method: "get",
-                data: {},
-                success: function (data) {
-                    console.log(data)
-                    updatetext(this_, data.autoplay)
-                }, error: function (error) {
-                    console.log(error)
-                    console.log("error")
+    </div>
 
-                }
-            })
-        })
 
-    </script>
+    </div>
+    </div>
+
 {% endblock %}
 <script>
-{% block jquery %}
-           options = {/* see below */};
-        $("input#great").switchButton(options);
-{% endblock %}
+    {% block jquery %}
+        $("#checkboxautoplay").prop("checked", {{ settings.profile.autoplaybest|lower }});
+        $("#checkboxautonext").prop("checked", {{ settings.profile.autoplaynext|lower }});
+
+        $("#checkboxNightMode").prop("checked", {{ settings.profile.night_mode|lower }});
+        $(document).ready(function () {
+            $("input#checkboxautoplay").click(function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var thiselement = this;
+                $.ajax({
+                    url: '/api/account/autoplay',
+                    dataType: 'json',
+                    success: function (data) {
+                        $(thiselement).prop("checked", data.autoplay);
+                    }
+
+                });
+            })
+            $("input#checkboxNightMode").click(function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var thiselement = this;
+                $.ajax({
+                    url: '/api/account/nightmode',
+                    dataType: 'json',
+                    success: function (data) {
+                        $(thiselement).prop("checked", data.nightmode);
+                    }
+
+                });
+            })
+            $("input#checkboxAutoNext").click(function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var thiselement = this;
+                $.ajax({
+                    url: '/api/account/autoplaynext',
+                    dataType: 'json',
+                    success: function (data) {
+                        $(thiselement).prop("checked", data.autoplaynext);
+                    }
+
+                });
+            })
+        });
+
+    {% endblock %}
 </script>

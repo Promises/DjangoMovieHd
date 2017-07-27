@@ -1,12 +1,13 @@
 {% load staticfiles %}
+{% load analytical %}
+{% load notifications_tags %}
 <!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/html" data-cast-api-enabled="true">
-  <head>
-      <meta charset="UTF-8">
-      <meta http-equiv="X-UA-Compatible" content="IE=edge">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-
-
+<head>
+    {% analytical_head_top %}
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
     <link rel="icon" type="image/png" href="/static/favicon-32x32.png" sizes="32x32">
     <link rel="icon" type="image/png" href="/static/favicon-16x16.png" sizes="16x16">
@@ -17,30 +18,56 @@
     <meta name="application-name" content="MovieGrabber">
     <meta name="msapplication-config" content="/static/browserconfig.xml">
     <meta name="theme-color" content="#ffffff">
-           <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    {% if isplay %}
+        <meta property="og:title" content="{{ pagename }}"/>
+        <meta property="og:type" content="video.movie"/>
+        <meta property="og:url" content="https://moviegrabber.tv{{ request.path }}"/>
+        <meta property="og:image" content="{{ poster }}"/>
+    {% endif %}
 
-      <script src="http://vjs.zencdn.net/5.18.4/video.js"></script>
-      <link href="http://vjs.zencdn.net/5.18.4/video-js.css" rel="stylesheet">
-      <!-- If you'd like to support IE8 -->
-      <script src="http://vjs.zencdn.net/ie8/1.1.2/videojs-ie8.min.js"></script>
-      <title>{{ pagename }} - MovieGrabber</title>
-      <!-- Latest compiled and minified CSS -->
-      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
 
-      <!-- Optional theme -->
-      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
-      <!-- Latest compiled and minified JavaScript -->
-      <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
-      <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <script src="https://vjs.zencdn.net/5.18.4/video.js"></script>
+    <link href="https://vjs.zencdn.net/5.18.4/video-js.css" rel="stylesheet">
+    <!-- If you'd like to support IE8 -->
+    <script src="https://vjs.zencdn.net/ie8/1.1.2/videojs-ie8.min.js"></script>
+    <script src="{% static 'notifications/notify.js' %}" type="text/javascript"></script>
+    {% register_notify_callbacks callbacks='fill_notification_list,fill_notification_badge' %}
+    <title>{{ pagename }} - MovieGrabber</title>
+    <!-- Latest compiled and minified CSS -->
+    {% if request.user.profile.night_mode %}
+        <link rel="stylesheet" href="https://bootswatch.com/darkly/bootstrap.min.css">
+        <style>
+            .list-group-item:hover {
+                background-color: #272727 !important;
+            }
+        </style>
+    {% else %}
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+              integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+              crossorigin="anonymous">
 
+        <!-- Optional theme -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
+              integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp"
+              crossorigin="anonymous">
+    {% endif %}
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="{% static "js/bootstrap.min.js" %}"></script>
+
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <script src="https://use.fontawesome.com/b1c2cdc1e7.js"></script>
+
+    {% block extra_headers %}
+    {% endblock %}
     <link href="{% static "css/videojs-chromecast.css" %}" rel="stylesheet" type="text/css">
 
     <!-- javascripts -->
-    <script src="http://www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
+    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
 
     <script src="{% static "js/videojs-chromecast.js" %}"></script>
-<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
-<script src="https://intercoolerreleases-leaddynocom.netdna-ssl.com/intercooler-1.1.1.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+    <script src="https://intercoolerreleases-leaddynocom.netdna-ssl.com/intercooler-1.1.1.min.js"></script>
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -48,95 +75,133 @@
      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
-  </head>
-  <body>
+    {% analytical_head_bottom %}
+</head>
+<body>
+{% analytical_body_top %}
 
 
-  <nav class="navbar navbar-default navbar-fixed-top">
-  <div class="container-fluid">
-    <!-- Brand and toggle get grouped for better mobile display -->
-    <div class="navbar-header">
-      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
-        <span class="sr-only">Toggle navigation</span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
-      <a class="navbar-brand" href="/">MovieGrabber</a>
-    </div>
-
-    <!-- Collect the nav links, forms, and other content for toggling -->
-    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-      <ul class="nav navbar-nav">
-
-      </ul>
-
-      <ul class="nav navbar-nav navbar-right">
-
-      <form class="navbar-form navbar-left" action="/search" method="get">
-        <div class="form-group">
-          <input type="text" id="search" name="id" class="form-control" placeholder="Search">
+<nav class="navbar navbar-default navbar-fixed-top">
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse"
+                    data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/">MovieGrabber</a>
         </div>
-        <button type="submit" class="btn btn-default">Search</button>
-      </form>
-                  {% if user.is_authenticated %}
-        <li class="dropdown">
-          <a href="#" class="dropdown-toggle text-capitalize" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">{{ user.username }}<span class="caret"></span></a>
-          <ul class="dropdown-menu">
-              {% if user.is_staff %}
-                  <li><a href="/admin/">AdminCP</a></li>
-              {% endif %}
-              <li role="separator" class="divider"></li>
-            <li><a href="{% url "logout" %}">Logout</a></li>
 
-            <!--<li><a href="#">Another action</a></li>
-            <li><a href="#">Something else here</a></li>
-            <li role="separator" class="divider"></li>
-            <li><a href="#">Separated link</a></li>-->
-          </ul>
-        </li>
-            {% else %}
-            <li>
-          <a href="{% url "login" %}" class="text-capitalize"  role="button" aria-haspopup="true" aria-expanded="false">Login</a>
-           </li>
-                      <li><a href="{% url "register" %}" class="text-capitalize"  role="button" aria-haspopup="true" aria-expanded="false">Register</a>
-</li>
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            <ul class="nav navbar-nav">
 
-          {% endif %}
-      </ul>
+            </ul>
 
-    </div><!-- /.navbar-collapse -->
-  </div><!-- /.container-fluid -->
+            <ul class="nav navbar-nav navbar-right">
+
+                <form class="navbar-form navbar-left" action="/search" method="get">
+                    <div class="form-group">
+                        <input type="text" id="search" name="id" class="form-control" placeholder="Search">
+                    </div>
+                    <button type="submit" class="btn btn-default">Search</button>
+                </form>
+                {% if user.is_authenticated %}
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button"
+                           aria-haspopup="true" aria-expanded="false">
+                            <span>{{ user.username }}</span>{% live_notify_badge classes="badge badge-margin" %}<span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                            {% if user.is_staff %}
+                                <li><a href="/admin/">AdminCP</a></li>
+                            {% endif %}
+                            <li><a href="{% url 'profile' %}">Settings {% live_notify_badge classes="badge badge-margin" %}</a></li>
+
+                            <li role="separator" class="divider"></li>
+                            <li><a href="{% url "logout" %}">Logout</a></li>
+
+                            <!--<li><a href="#">Another action</a></li>
+                            <li><a href="#">Something else here</a></li>
+                            <li role="separator" class="divider"></li>
+                            <li><a href="#">Separated link</a></li>-->
+                        </ul>
+                    </li>
+                {% else %}
+                    <li>
+                        <a href="{% url "login" %}" class="text-capitalize" role="button" aria-haspopup="true"
+                           aria-expanded="false">Login</a>
+                    </li>
+                    <li><a href="{% url "register" %}" class="text-capitalize" role="button" aria-haspopup="true"
+                           aria-expanded="false">Register</a>
+                    </li>
+
+                {% endif %}
+            </ul>
+
+        </div><!-- /.navbar-collapse -->
+    </div><!-- /.container-fluid -->
 </nav>
+<div class="container">
+    {% if not user.is_authenticated %}
 
-  {% if not user.is_authenticated %}
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <div class="alert alert-info text-center" role="alert">
+                    <p><a href="{% url "register" %}" class="alert-link">Register</a> or <a href="{% url "login" %}"
+                                                                                            class="alert-link">Login</a>,
+                        to track watched episodes.(No email needed)</p>
+                </div>
 
-      <div class="row">
-      <div class="col-md-6 col-md-offset-3">
-          <div class="alert alert-info text-center" role="alert">
-              <p><a href="{% url "register" %}" class="alert-link">Register</a> or <a href="{% url "login" %}" class="alert-link">Login</a>, to track watched episodes.(No email needed)</p>
-          </div>
+            </div>
 
-      </div>
-
-      </div>
-  {% endif %}
+        </div>
+    {% endif %}
 
 
-            {% block content %}
-            {% endblock %}
+    {% block content %}
+    {% endblock %}
+</div>
+<!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1 text-center">
+                <hr>
+                <ul class="list-inline">
+                    <li>
+                        <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+                            <input type="hidden" name="cmd" value="_s-xclick">
+                            <input type="hidden" name="hosted_button_id" value="YW6HFFQSUWQJL">
+                            <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif"
+                                   border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+                            <img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1"
+                                 height="1">
+                        </form>
 
-    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-    <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="{% static "js/bootstrap.min.js" %}"></script>
-  <script>
-  $.getScript('//cdn.jsdelivr.net/isotope/1.5.25/jquery.isotope.min.js',function(){
-    $('#projects_container').isotope({
-      itemSelector : '.project_item',
-      layoutMode : 'fitRows'
+                    </li>
+                </ul>
+                <p class="text-muted">Please donate to help with server costs.</p>
+                <hr>
+            </div>
+        </div>
+    </div>
+</footer>
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script>
+    $.getScript('//cdn.jsdelivr.net/isotope/1.5.25/jquery.isotope.min.js', function () {
+        $('#projects_container').isotope({
+            itemSelector: '.project_item',
+            layoutMode: 'fitRows'
+        });
     });
-  });
+    {% block jquery %}
+    {% endblock %}
 </script>
-  </body>
+{% analytical_body_bottom %}
+</body>
 </html>

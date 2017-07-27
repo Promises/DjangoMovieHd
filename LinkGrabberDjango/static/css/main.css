@@ -65,8 +65,8 @@ body { padding-top: 70px; }
 }
 
 .videocontent{
-    max-width: 640px;
-    width: 80%;
+    /*max-width: 640px;
+    width: 80%;*/
 }
 .searchbox{
     max-width: 60%;
@@ -123,4 +123,11 @@ body { padding-top: 70px; }
         background-color: inherit;
         border-top: 0 none;
     }
+}
+
+.badge-margin{
+    margin-left:5px;
+}
+.drive-viewer-toolstrip{
+    display: none;
 }

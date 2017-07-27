@@ -5,3 +5,5 @@ from django.apps import AppConfig
 
 class LinkgrabberdjangoConfig(AppConfig):
     name = 'LinkGrabberDjango'
+
+

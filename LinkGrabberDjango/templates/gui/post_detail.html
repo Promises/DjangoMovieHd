@@ -1,8 +1,10 @@
 {% extends 'gui/base.html' %}
 {% load links_extras %}
 {% block content %}
+    <script src="http://code.stephenmorley.org/javascript/collapsible-lists/CollapsibleLists.js">
+    </script>
     <div class="container jumbotron">
-        <div class="row justify-content-md-center row-eq-height">
+        <div class="row justify-content-md-center">
             <div class="col-md-1"></div>
 
             <div class="col-md-4 thumbnail">
@@ -14,80 +16,250 @@
                 </div>
             </div>
             <div class="col-md-1"></div>
+
             <div class="col-md-5">
                 <p class="h1">
-                    <small>{{ title }}</small>
+                    <small>{% if user.is_authenticated %}
+                        <i id="likes" class="glyphicon glyphicon-heart-empty"></i>
+
+
+                    {% endif %}{{ title }}</small>
                 </p>
-                <div class="scrollable-menu list-group">
+                <div class="scrollable-menu list-group" id="episodeList">
 
-                    {% for post in posts %}
-
-                        <form action="{% url 'links' %}" method="post">
-                            {% csrf_token %}
-                            <input type="hidden" name="epid" value="{{ post.id }}">
-                            <input type="hidden" name="epname" value="{{ post.title }}">
-                            <input type="hidden" name="showid" value="{{ showid }}">
-
-                            <button name="foo" value="{{ title }}" class="list-group-item
-                                    {% if user.is_authenticated %}{% if post.id|is_in:seen %}list-group-item-info{% endif %}{% endif %}">
-                                {{ post.title }}
-                            </button>
-                        </form>
-
-
-                    {% endfor %}
                 </div>
+
             </div>
-
-        <script>
-            var episodes = {{ jsoneps|safe }};
-            for(key in episodes){
-console.log(episodes[key].title);
-console.log(episodes[key].title.substring(episodes[key].title.lastIndexOf("S")+1,episodes[key].title.lastIndexOf("E")));
-};
-        </script>
-        <!-- test-->
-          <div class="col-md-5">
-                <p class="h1">
-                    <small>{{ title }}</small>
-                </p>
-                <div class="scrollable-menu list-group">
-
-                    {% for post in posts %}
-
-                        <form action="{% url 'links' %}" method="post">
-                            {% csrf_token %}
-                            <input type="hidden" name="epid" value="{{ post.id }}">
-                            <input type="hidden" name="epname" value="{{ post.title }}">
-                            <input type="hidden" name="showid" value="{{ showid }}">
-
-                            <button name="foo" value="{{ title }}" class="list-group-item
-                                    {% if user.is_authenticated %}{% if post.id|is_in:seen %}list-group-item-info{% endif %}{% endif %}">
-                                {{ post.title }}
-                            </button>
-                        </form>
-
-
-                    {% endfor %}
-                </div>
-            </div>
-
-                <!-- test-->
-
             <div class="col-md-1"></div>
 
         </div>
-        <div class="row justify-content-md-center row-eq-height">
+        <div class="row">
+            <div class="col-md-10 container col-md-offset-1" id="related">
+
+            </div>
+        </div>
+        <div class="btn- row justify-content-md-center">
             <div class="col-md-1"></div>
 
             <div class="col-md-10 container">
                 <p class="lead">{{ desc }}</p>
+
             </div>
 
             <div class="col-md-1"></div>
 
         </div>
     </div>
+    {% if isshow %}
+        <script>
+
+            var episodes = {{ jsoneps|safe }};
+            var seen = {{ jsonseen|safe }};
+
+
+            function makeUL(array) {
+                // Create the list element:
+                var list = $("<div></div>");
+                var seasonlist = [];
+
+                for (key in episodes) {
+                    // Create the list item:
+                    var srctext = episodes[key].title;
+                    newtext = srctext.match(/S(\d?\d)E/g)[0];
+                    var Season = parseInt(newtext.replace(/^[^0-9]+/, ''), 10);
+                    if (typeof seasonlist[Season] !== 'undefined') {
+                    } else {
+                        seasonlist[Season] = $('<div class="panel panel-default" style="margin-bottom: 1px;"> <div class="panel-heading"> <h4 class="panel-title"> <a data-toggle="collapse" data-parent="#accordion" href="#collapse' + Season + '"> Season ' + Season + '</a> </h4> </div> <div id="collapse' + Season + '" class="panel-collapse collapse"> <div class="panel-body" style="padding: 1px;"></div> </div></div>');
+                    }
+                    var item = $("<form></form>");
+                    item.attr("action", "{% url 'links' %}");
+                    item.attr("method", "post");
+
+                    var epid = $("<input></input>");
+                    epid.attr("type", "hidden");
+                    epid.attr("name", "epid");
+                    epid.attr("value", episodes[key].id);
+
+                    var epname = $("<input></input>");
+                    epname.attr("type", "hidden");
+                    epname.attr("name", "epname");
+                    epname.attr("value", episodes[key].title);
+
+                    var showid = $("<input></input>");
+                    showid.attr("type", "hidden");
+                    showid.attr("name", "showid");
+                    showid.attr("value", {{ showid }});
+
+                    var csrf = $("{% csrf_token %}");
+                    var classAttr = "list-group-item ";
+                    if (seen.length != 0) {
+                        if (seen.indexOf(episodes[key].id) >= 0) {
+                            //do something
+                            classAttr += "list-group-item-info";
+                        }
+                    }
+
+                    var button = $("<button></button>");
+                    button.attr("value", "{{ title }}");
+                    button.attr("name", "foo");
+                    button.attr("class", classAttr);
+                    button.text(episodes[key].title);
+                    item.append(epid, epname, showid, button, csrf);
+                    // Add it to the list:
+                    seasonlist[Season].find(".panel-body").append(item);
+                    list.append(seasonlist[Season])
+                }
+
+                // Finally, return the constructed list:
+                return list;
+            }
+            $('#episodeList').append(makeUL(episodes));
+
+        </script>
+    {% else %}
+        <script>
+
+            var episodes = {{ jsoneps|safe }};
+            var seen = {{ jsonseen|safe }};
+
+
+            function makeUL(array) {
+                // Create the list element:
+                var list = $("<div></div>");
+
+                for (key in episodes) {
+                    // Create the list item:
+                    var item = $("<form></form>");
+                    item.attr("action", "{% url 'links' %}");
+                    item.attr("method", "post");
+
+                    var epid = $("<input></input>");
+                    epid.attr("type", "hidden");
+                    epid.attr("name", "epid");
+                    epid.attr("value", episodes[key].id);
+
+                    var epname = $("<input></input>");
+                    epname.attr("type", "hidden");
+                    epname.attr("name", "epname");
+                    epname.attr("value", episodes[key].title);
+
+                    var showid = $("<input></input>");
+                    showid.attr("type", "hidden");
+                    showid.attr("name", "showid");
+                    showid.attr("value", {{ showid }});
+
+                    var csrf = $("{% csrf_token %}");
+                    var classAttr = "list-group-item ";
+                    if (seen.length != 0) {
+                        if (seen.indexOf(episodes[key].id) >= 0) {
+                            //do something
+                            classAttr += "list-group-item-info";
+                        }
+                    }
+
+                    var button = $("<button></button>");
+                    button.attr("value", "{{ title }}");
+                    button.attr("name", "foo");
+                    button.attr("class", classAttr);
+                    button.text(episodes[key].title);
+                    item.append(epid, epname, showid, button, csrf);
+                    // Add it to the list:
+                    list.append(item);
+                }
+
+                // Finally, return the constructed list:
+                return list;
+            }
+            $('#episodeList').append(makeUL(episodes));
+
+            // JQuery code to be added in here.
+
+
+        </script>
+    {% endif %}
+    <script>
+        if ({{ isfav|lower }}) {
+            $("i.glyphicon").removeClass("glyphicon-heart-empty");
+            $("i.glyphicon").addClass("glyphicon-heart");
+        }
+        var showid = {{ showid }};
+
+        function getRecommended() {
+            $.ajax({
+                url: 'https://moviegrabber.tv/api/account/fiverecommended',
+                data: {
+                    'id': showid
+                },
+                dataType: 'json',
+                success: function (shows) {
+                    var list = $("<div></div>");
+                    var links = shows.shows;
+                    for (id in links) {
+                        show = links[id];
+
+                        var item = $("<a></a>");
+                        item.attr("href", "/post/" + show.showid + "/");
+                        item.attr("class", "list-group-item col-md-6");
+                        item.attr("style", "color: inherit;text-decoration: inherit;");
+
+                        var wrapper = $("<div></div>");
+                        wrapper.attr("class", "panel-body media-list");
+                        wrapper.attr("style", "padding: 1px;")
+
+                        var imagewrapper = $("<div></div>");
+                        imagewrapper.attr("class", "col-md-2");
+
+                        var poster = $("<img></img>");
+                        poster.attr("class", "media-left");
+                        poster.attr("src", show.poster);
+                        poster.attr("height", "50");
+                        imagewrapper.append(poster);
+
+                        var title = $("<h2></h2>");
+                        title.attr("class", "text-center media-body");
+                        title.attr("style", "line-height: 48px;top: 0; bottom: 0; margin: auto;color: #8492af;font-size: 21px;font-weight: 600;");
+                        title.text(show.showname);
+                        wrapper.append(imagewrapper, title);
+                        item.append(wrapper);
+                        list.append(item);
+
+
+                    }
+                    $("div#related").append(list);
+
+
+                }
+            });
+        }
+
+        getRecommended()
+        $(document).ready(function () {
+
+
+            $("i.glyphicon").click(function () {
+                var thiselement = this;
+                $.ajax({
+                    url: '/api/account/favourite',
+                    data: {
+                        'id': showid
+                    },
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data.Favourite) {
+                            $(thiselement).removeClass("glyphicon-heart-empty");
+                            $(thiselement).addClass("glyphicon-heart");
+                        } else {
+                            $(thiselement).addClass("glyphicon-heart-empty");
+                            $(thiselement).removeClass("glyphicon-heart");
+                        }
+                    }
+
+                });
+            })
+        })
+    </script>
+
+
 
 
 {% endblock %}

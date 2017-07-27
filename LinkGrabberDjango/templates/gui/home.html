@@ -3,81 +3,103 @@
 
 
     <div class="container">
-    <div class="row">
-                        <form action="search" method="get">
+        <div class="row">
+            <form action="search" method="get">
 
-          <div class="col-md-6 col-md-offset-3 ">
-              <div class="input-group">
+                <div class="col-md-6 col-md-offset-3 ">
+                    <div class="input-group">
 
-                    <input type="text" id="search" name="id" class="form-control" placeholder="Search for TV-Show or Movie">
-                    <span class="input-group-btn">
+                        <input type="text" id="search" name="id" class="form-control"
+                               placeholder="Search for TV-Show or Movie">
+                        <span class="input-group-btn">
                         <button type="submit" class="btn btn-warning">Search</button>
                     </span>
-              </div>
-          </div>
-                </form>
+                    </div>
+                </div>
+            </form>
 
-    </div>
-        <!--
-<form id="form" role="form" action="{% url 'search-submit' %}" method="post">
-	{% csrf_token %}
-	<input name="search"
-	       id="search"
-	       type="search"
-	       placeholder="Start typing here"
-	       ic-post-to="{% url 'search-ajax-submit' %}"
-	       ic-trigger-on="keyup changed"
-	       ic-target="#search-result-container"/>
-	<button type="submit">Search</button>
-</form>
-<span id="search-result-container"></span>
+        </div>
 
-</div>
+        <div class="row" style="padding-top: 5%"></div>
 
--->
-    <div class="row" style="padding-top: 10%"></div>
+        <div class="row">
+            <div class="{% if user.is_authenticated %} col-md-4
+                   {% else %} col-md-3 col-md-offset-3
+                   {% endif %}">
+                <div class="panel panel-warning">
+                    <div class="panel-heading">
+                        Recently Updated Movies
+                        <a href="{% url 'toplist' %}?cat=movies" class="glyphicon glyphicon-list pull-right"
+                           style="color: inherit;"></a>
+                    </div>
+                    <div class="panel-body media-list">
 
-    <div class="row">
-        <div class="col-md-3 col-md-offset-3">
-        <div class="panel panel-warning">
-        <div class="panel-heading">Popular Movies</div>
-        <div class="panel-body media-list">
-
-                {% for video in popmovies %}
-                    <a href="{% url 'post_detail' id=video.id %}" class="list-group-item">
+                        {% for video in popmovies %}
+                            <a href="{% url 'post_detail' id=video.id %}" class="list-group-item">
                 <span class="media-left">
-                    <img src="{{ video.poster }}" class="media-object" height="48" >
+                    <img src="{{ video.poster }}" class="media-object" height="48">
                 </span>
-                        <span class="media-body">
+                                <span class="media-body">
                              {{ video.title }}
                         </span>
-                </a>
-                {% endfor %}
+                            </a>
+                        {% endfor %}
 
-        </div>
-        </div>
-        </div>
-        <div class="col-md-3">
-        <div class="panel panel-warning">
-        <div class="panel-heading">Popular Tv-Shows</div>
-        <div class="panel-body media-list">
+                    </div>
+                </div>
+            </div>
+            <div class="{% if user.is_authenticated %} col-md-4
+                   {% else %} col-md-3
+                   {% endif %}">
+                <div class="panel panel-warning">
+                    <div class="panel-heading">
+                        Recently Updated Tv-Shows
+                        <a href="{% url 'toplist' %}?cat=tvshow" class="glyphicon glyphicon-list pull-right"
+                           style="color: inherit;"></a>
+                    </div>
+                    <div class="panel-body media-list">
 
-                {% for video in poptv %}
-                    <a href="{% url 'post_detail' id=video.id %}" class="list-group-item">
+                        {% for video in poptv %}
+                            <a href="{% url 'post_detail' id=video.id %}" class="list-group-item">
                 <span class="media-left">
-                    <img src="{{ video.poster }}" class="media-object" height="48" >
+                    <img src="{{ video.poster }}" class="media-object" height="48">
                 </span>
-                        <span class="media-body">
+                                <span class="media-body">
                              {{ video.title }}
                         </span>
-                </a>
-                {% endfor %}
+                            </a>
+                        {% endfor %}
+
+                    </div>
+                </div>
+            </div>
+            {% if user.is_authenticated %}
+                <div class="col-md-4">
+                    <div class="panel panel-info">
+                        <div class="panel-heading">
+                            Favourites
+                            <a href="{% url 'favourites' %}" class="glyphicon glyphicon-list pull-right"
+                               style="color: inherit;"></a>
+                        </div>
+                        <div class="panel-body media-list">
+
+                            {% for video in favourites %}
+                                <a href="{% url 'post_detail' id=video.showid %}" class="list-group-item">
+                <span class="media-left">
+                    <img src="{{ video.poster }}" class="media-object" height="48">
+                </span>
+                                    <span class="media-body">
+                             {{ video.showname }}
+                        </span>
+                                </a>
+                            {% endfor %}
+
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
 
         </div>
-        </div>
-        </div>
-
-    </div>
     </div>
 
 {% endblock %}
