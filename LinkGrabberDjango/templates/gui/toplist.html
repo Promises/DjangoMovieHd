@@ -1,0 +1,71 @@
+{% extends 'gui/base.html' %}
+{% block content %}
+    <div class="container" style="width: auto;">
+        <div class="row">
+            <div class="col-md-12 text-center">
+
+                <div class="btn-group" role="group" style="margin-bottom: 1%">
+                    <a href="?cat={{ type }}&sort=popular" class="btn btn-primary">Top</a>
+                    <a href="?cat={{ type }}&sort=rating" class="btn btn-primary">Rating</a>
+                    <a href="?cat={{ type }}&sort=new" class="btn btn-primary">New</a>
+                    <a href="?cat={{ type }}&sort=updated" class="btn btn-primary">Updated</a>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+
+            {% for post in posts %}
+                {% if forloop.first %}
+                    <div class="row justify-content-center">
+                    <div class="col-md-2 justify-content-center"></div>{% endif %}
+            <div class="col-md-2 justify-content-center">
+                <div class="thumbnail">
+                    <a href="{% url 'post_detail' id=post.id %}">
+                        <img src="{{ post.poster }}" alt="Lights" style="width:100%">
+                        <div class="caption text-area">
+                            <p class="text-center text-bold">{{ post.title }}</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            {% if forloop.counter|divisibleby:4 %}
+                <div class="col-md-2 justify-content-center"></div></div>
+                <div class="row justify-content-center">
+                <div class="col-md-2 justify-content-center"></div>{% endif %}
+            {% if forloop.last %}</div>{% endif %}
+            {% endfor %}
+        </div>
+
+
+        <div class="row">
+            <div class="col-md-12 text-center">
+                {% if posts.has_other_pages %}
+                    <ul class="pagination">
+                        {% if posts.has_previous %}
+                            <li><a href="?cat={{ type }}&page={{ posts.previous_page_number }}">&laquo;</a></li>
+                        {% else %}
+                            <li class="disabled"><span>&laquo;</span></li>
+                        {% endif %}
+                        {% for i in posts.page_range %}
+                             {% if not i %}
+                                   <li class="disabled"><a href="#">...</a></li>
+                            {% else %}
+                            {% if posts.number == i %}
+                                <li class="active"><span>{{ i }} <span class="sr-only">(current)</span></span></li>
+                            {% else %}
+                                <li><a href="?cat={{ type }}&page={{ i }}">{{ i }}</a></li>
+                            {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if posts.has_next %}
+                            <li><a href="?cat={{ type }}&page={{ posts.next_page_number }}">&raquo;</a></li>
+                        {% else %}
+                            <li class="disabled"><span>&raquo;</span></li>
+                        {% endif %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+{% endblock %}

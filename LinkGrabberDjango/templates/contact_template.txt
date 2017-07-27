@@ -1,0 +1,75 @@
+Contact Name:
+{{ contact_name }}
+
+
+Content:
+{{ form_content|safe|striptags }}
+
+
+ <div class="row">
+            <div class="container-fluid">
+                <div class="panel panel-default">
+                    {% notifications_unread as unread_count %}
+                    <div class="panel-heading">Unread notifications <span class="badge">{{ unread_count }}</span></div>
+                    <div class="panel-body">
+                        <div class="row">
+                            <div class="col-md-2">
+                                <button id="send-notification-button" type="button" class="btn btn-default btn-block">
+                                    Send Notification
+                                </button>
+                                <div id="send-notification-popover" class="hide">
+                                    <form id="send-notification-form" role="form" action="{% url 'send_notification' %}"
+                                          method="post">
+                                        {% csrf_token %}
+                                        <div class="form-group">
+                                            <label for="recipient_username">Username</label>
+                                            <input type="text" class="form-control" id="recipient_username"
+                                                   name="recipient_username" placeholder="Recipient username">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="verb">Verb</label>
+                                            <input type="text" class="form-control" id="verb" name="verb"
+                                                   placeholder="Verb">
+                                        </div>
+                                        <button type="submit" class="btn btn-default">Submit</button>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="col-md-2"><a id="clear-button" class="btn btn-default btn-block"
+                                                     href="{% url 'mark_as_read' %}">Mark as read</a></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                            </div>
+                        </div>
+                    </div>
+                    <table class="table table-bordered">
+                        <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Recipient</th>
+                            <th>Actor</th>
+                            <th>Verb</th>
+                            <th>Action Object</th>
+                            <th>Target</th>
+                            <th>Description</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for notification in notifications %}
+                            <tr>
+                                <td>{{ notification.timestamp|date:"c" }}</td>
+                                <td>{{ notification.recipient|default:"" }}</td>
+                                <td>{{ notification.actor|default:"" }}</td>
+                                <td>{{ notification.verb|default:"" }}</td>
+                                <td>{{ notification.action_object|default:"" }}</td>
+                                <td>{{ notification.target|default:"" }}</td>
+                                <td>{{ notification.description|default:"" }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
