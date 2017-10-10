@@ -6,14 +6,14 @@ from LinkGrabberDjango import apigrabber
 register = template.Library()
 @register.filter(name='urldecode')
 def urldecode(value): # Only one argument.
-    """Converts a string into all lowercase"""
     test3 =urllib.unquote(value).decode('utf8')
     if test3.startswith("GoogleDrive"):
         test3 = apigrabber.decrypt(test3[12:])
-        test3 = "https://drive"  + test3.replace("\\/", "/")[:-17]+"preview"
+        print test3
+        test3 = "https://drive" + test3.replace("\\/", "/")[:-17]+"preview"
         print test3
 
-    return test3
+    return test3.replace("+", "%20")
 register.filter('urldecode', urldecode)
 
 @register.filter(name='encode')
@@ -56,3 +56,14 @@ def status(var):
     return False
 
 register.filter(status)
+
+def sslimage(var):
+    image = var
+    if image.startswith("http://"):
+        image= "https://images.weserv.nl/?url="+image[7:]
+
+
+    return image
+
+
+register.filter(sslimage)

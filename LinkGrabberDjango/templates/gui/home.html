@@ -1,10 +1,11 @@
 {% extends 'gui/base.html' %}
+{% load links_extras %}
 {% block content %}
 
 
     <div class="container">
         <div class="row">
-            <form action="search" method="get">
+            <form action="searchaskforapi" method="get">
 
                 <div class="col-md-6 col-md-offset-3 ">
                     <div class="input-group">
@@ -32,19 +33,10 @@
                         <a href="{% url 'toplist' %}?cat=movies" class="glyphicon glyphicon-list pull-right"
                            style="color: inherit;"></a>
                     </div>
-                    <div class="panel-body media-list">
-
-                        {% for video in popmovies %}
-                            <a href="{% url 'post_detail' id=video.id %}" class="list-group-item">
-                <span class="media-left">
-                    <img src="{{ video.poster }}" class="media-object" height="48">
-                </span>
-                                <span class="media-body">
-                             {{ video.title }}
-                        </span>
-                            </a>
-                        {% endfor %}
-
+                    <div class="panel-body media-list" id="movies">
+                        <center id="movies-loader">
+                            <div class="loader"></div>
+                        </center>
                     </div>
                 </div>
             </div>
@@ -57,19 +49,11 @@
                         <a href="{% url 'toplist' %}?cat=tvshow" class="glyphicon glyphicon-list pull-right"
                            style="color: inherit;"></a>
                     </div>
-                    <div class="panel-body media-list">
+                    <div class="panel-body media-list" id="tvshow">
 
-                        {% for video in poptv %}
-                            <a href="{% url 'post_detail' id=video.id %}" class="list-group-item">
-                <span class="media-left">
-                    <img src="{{ video.poster }}" class="media-object" height="48">
-                </span>
-                                <span class="media-body">
-                             {{ video.title }}
-                        </span>
-                            </a>
-                        {% endfor %}
-
+                        <center id="movies-loader">
+                            <div class="loader"></div>
+                        </center>
                     </div>
                 </div>
             </div>
@@ -84,7 +68,7 @@
                         <div class="panel-body media-list">
 
                             {% for video in favourites %}
-                                <a href="{% url 'post_detail' id=video.showid %}" class="list-group-item">
+                                <a href="{% url 'post_detail' id=video.showid title=video.showname %}" class="list-group-item">
                 <span class="media-left">
                     <img src="{{ video.poster }}" class="media-object" height="48">
                 </span>
@@ -101,6 +85,54 @@
 
         </div>
     </div>
+    <script>
+
+        function getPopular(type) {
+            $.ajax({
+                url: '/api/media/getPopular',
+                data: {
+                    'type': type
+                },
+                dataType: 'json',
+                success: function (shows) {
+                    console.log(shows)
+                    var list = $("<div></div>");
+                    var links = shows.shows;
+                    for (id in links) {
+                        show = links[id];
+
+                        var item = $("<a></a>");
+                        item.attr("href", "/post/" + show.showid + "/" + show.showname + "/");
+                        item.attr("class", "list-group-item");
+
+                        var wrapper = $("<span></span>");
+                        wrapper.attr("class", "media-left");
+
+
+                        var poster = $("<img></img>");
+                        poster.attr("class", "media-object");
+                        poster.attr("src", show.poster);
+                        poster.attr("height", "48");
+
+                        var title = $("<span></span>");
+                        title.attr("class", "media-body");
+                        title.text(show.showname);
+                        wrapper.append(poster);
+                        item.append(wrapper, title);
+                        list.append(item);
+                        $("center#" + type + "-loader").attr("style", "display:none;");
+
+                    }
+                    $("div#" + type).append(list);
+
+
+                }
+            });
+        }
+
+        getPopular("tvshow");
+        getPopular("movies");
+    </script>
 
 {% endblock %}
 

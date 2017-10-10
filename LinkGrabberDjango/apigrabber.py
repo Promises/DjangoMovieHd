@@ -2,16 +2,19 @@ import base64
 import hashlib
 import json
 import time
-
+from pyimei import ImeiSupport
 import requests
 from Crypto import Random
 from Crypto.Cipher import AES
 from bs4 import BeautifulSoup
+import sys
+reload(sys)
+sys.setdefaultencoding("utf8")
 
-key = "darth89@1234bhgdrasew@7813451234"
+key = "darth19@1234bhgdrasew@1094561234"
 bs = 32
 time = str(int(round(time.time() * 1000)))[0:10]
-baseurl = "http://appmoviehd.info/admin/index.php/apiandroid/"
+baseurl = "http://appmoviehd.info/admin/index.php/apiandroid2/"
 
 
 def encrypt(raw):
@@ -42,10 +45,11 @@ def getToken():
     soup = BeautifulSoup(c,"lxml")
     versiontxt = (soup.find_all("span", class_="version")[0].string)
     version = "".join(_ for _ in versiontxt if _ in ".1234567890")
-    token = "ddteam@android@nanana" + time
+    version = "4.5.4"
+    token = "ttteam@android@122334" + time
     token = hashlib.md5(token.encode('utf-8')).hexdigest().upper()
-
-    params = "os=android" + "&version=" + version + "&token=" + token + "&time=" + time + "&ads=0&deviceid=867271029048005"
+    print(version)
+    params = "os=android" + "&version=" + version + "&token=" + token +"&tokengoogle=" + "&time=" + time + "&ads=0&deviceid="+ImeiSupport.generateNew()
 
     return params
 
@@ -56,8 +60,9 @@ def createmainlisting(name):
 
     videourl = baseurl + "movies?type=search&keyword=" + name + "&page=" + "1" + "&count=5000&"
     r = requests.get(videourl + getToken()).text
-
+    print(videourl + getToken())
     testtext = decrypt(r)
+    print(testtext)
     text = testtext[testtext.index("{"):][:-1]
 
     videos2 = json.loads(text)
@@ -70,16 +75,15 @@ def getpopular(type):
     r = requests.get(videourl + getToken()).text
 
     testtext = decrypt(r)
-    #print testtext
     text = testtext[testtext.index("{"):][:-1]
-
+    print(text)
     videos2 = json.loads(text)
 
     return videos2["films"]
 
 
 def createdetails(id):
-    idget = "http://appmoviehd.info/admin/index.php/apiandroid/detail?id=" + id + "&page=1&count=-1&"
+    idget = baseurl + "detail?id=" + id + "&page=1&count=-1&"
     r = requests.get(idget + getToken()).text
     # xbmc.log(r)
     # xbmc.log(baseurl + getToken())
@@ -100,7 +104,7 @@ def createdetails(id):
 
 
 def getstreams(id):
-    streamurl = "http://appmoviehd.info/admin/index.php/apiandroid/stream?chapterid=" + id + "&page=1&count=-1&"
+    streamurl = baseurl + "stream?chapterid=" + id + "&page=1&count=-1&"
     r = requests.get(streamurl + getToken()).text
     test3 = decrypt(r)
     text3 = test3[test3.index("{"):][:-1]
@@ -131,8 +135,6 @@ def getToplist(type, page, sort):
         videos2 = json.loads(text)
         allvids += videos2["films"]
         notlast = videos2["more"]
-        #print videos2["more"]
-        #print currentpage
         currentpage += 1
 
     return allvids

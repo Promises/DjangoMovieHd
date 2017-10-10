@@ -5,7 +5,7 @@
         <div class="col-md-6 col-sm-offset-3">
             <div class="list-group">
             {% for post in posts %}
-                  <a href="{% url 'plays' epid=post.chapter_id streamid=post.type showid=showid%}" class="list-group-item">
+                  <a href="{% url 'plays' epid=post.chapter_id streamid=forloop.counter0 showid=showid%}" class="list-group-item">
                     {{ post.name }}
                   </a>
             {% endfor %}

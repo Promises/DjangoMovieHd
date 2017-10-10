@@ -4,10 +4,10 @@
         <div class="row">
             {% for post in posts %}
                 <div class="row row-eq-height list-group" style="margin-bottom: 1%">
-                    <div class="col-md-1"><h1 data-id="{{ post.showid }}" style="line-height: 96px;" id="likes"
+                    <div class="col-md-1"><h1 data-id="{{ post.showid }}" style="line-height: 96px;cursor: pointer;cursor: hand;" id="likes"
                                               class="glyphicon glyphicon-heart"></h1></div>
                     <a class="list-group-item" style="color: inherit;text-decoration: inherit;"
-                       href="{% url 'post_detail' id=post.showid %}">
+                       href="{% url 'post_detail' id=post.showid title=post.showname %}">
                         <div class="panel-body media-list">
                             <div class="col-md-2">
                                 <img class="media-left" src="{{ post.poster }}" alt="Lights" style="height:100px;">

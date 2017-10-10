@@ -5,7 +5,7 @@
         {% if forloop.first %}<div class="row justify-content-center" ><div class="col-md-2 justify-content-center"></div>{% endif %}
     <div class="col-md-2 justify-content-center">
 <div class="thumbnail">
-          <a href="{% url 'post_detail' id=post.id %}">
+          <a href="{% url 'post_detail' id=post.id title=post.title %}">
             <img src="{{ post.poster }}" alt="Lights" style="width:100%">
             <div class="caption text-area">
               <p class="text-center text-bold">{{ post.title }}</p>

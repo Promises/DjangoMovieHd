@@ -3,16 +3,22 @@
 {% block content %}
     <script src="http://code.stephenmorley.org/javascript/collapsible-lists/CollapsibleLists.js">
     </script>
-    <div class="container jumbotron">
+    <div class="container jumbotron" id="loader">
+        <center>
+            <div class="loader"></div>
+        </center>
+    </div>
+    <div class="container jumbotron" id="thecontent" style="display: none;">
+
         <div class="row justify-content-md-center">
             <div class="col-md-1"></div>
 
             <div class="col-md-4 thumbnail">
-                <img src="{{ poster }}">
+                <img id="poster">
                 <div class="caption">
-                    <small class="text-muted">Year: {{ startyear }} </small>
+                    <small  class="text-muted">Year: <span id="year"></span></small>
 
-                    <small class="text-muted pull-right">Rating: {{ rating }}</small>
+                    <small  class="text-muted pull-right">Rating: <span id="rating"></span></small>
                 </div>
             </div>
             <div class="col-md-1"></div>
@@ -20,10 +26,10 @@
             <div class="col-md-5">
                 <p class="h1">
                     <small>{% if user.is_authenticated %}
-                        <i id="likes" class="glyphicon glyphicon-heart-empty"></i>
+                        <i id="likes" style="cursor: pointer;cursor: hand;" class="glyphicon glyphicon-heart-empty"></i>
 
 
-                    {% endif %}{{ title }}</small>
+                    {% endif %}<span id="title"></span></small>
                 </p>
                 <div class="scrollable-menu list-group" id="episodeList">
 
@@ -42,7 +48,7 @@
             <div class="col-md-1"></div>
 
             <div class="col-md-10 container">
-                <p class="lead">{{ desc }}</p>
+                <p class="lead" id="desc"></p>
 
             </div>
 
@@ -50,140 +56,132 @@
 
         </div>
     </div>
-    {% if isshow %}
-        <script>
 
-            var episodes = {{ jsoneps|safe }};
-            var seen = {{ jsonseen|safe }};
-
-
-            function makeUL(array) {
-                // Create the list element:
-                var list = $("<div></div>");
-                var seasonlist = [];
-
-                for (key in episodes) {
-                    // Create the list item:
-                    var srctext = episodes[key].title;
-                    newtext = srctext.match(/S(\d?\d)E/g)[0];
-                    var Season = parseInt(newtext.replace(/^[^0-9]+/, ''), 10);
-                    if (typeof seasonlist[Season] !== 'undefined') {
-                    } else {
-                        seasonlist[Season] = $('<div class="panel panel-default" style="margin-bottom: 1px;"> <div class="panel-heading"> <h4 class="panel-title"> <a data-toggle="collapse" data-parent="#accordion" href="#collapse' + Season + '"> Season ' + Season + '</a> </h4> </div> <div id="collapse' + Season + '" class="panel-collapse collapse"> <div class="panel-body" style="padding: 1px;"></div> </div></div>');
-                    }
-                    var item = $("<form></form>");
-                    item.attr("action", "{% url 'links' %}");
-                    item.attr("method", "post");
-
-                    var epid = $("<input></input>");
-                    epid.attr("type", "hidden");
-                    epid.attr("name", "epid");
-                    epid.attr("value", episodes[key].id);
-
-                    var epname = $("<input></input>");
-                    epname.attr("type", "hidden");
-                    epname.attr("name", "epname");
-                    epname.attr("value", episodes[key].title);
-
-                    var showid = $("<input></input>");
-                    showid.attr("type", "hidden");
-                    showid.attr("name", "showid");
-                    showid.attr("value", {{ showid }});
-
-                    var csrf = $("{% csrf_token %}");
-                    var classAttr = "list-group-item ";
-                    if (seen.length != 0) {
-                        if (seen.indexOf(episodes[key].id) >= 0) {
-                            //do something
-                            classAttr += "list-group-item-info";
-                        }
-                    }
-
-                    var button = $("<button></button>");
-                    button.attr("value", "{{ title }}");
-                    button.attr("name", "foo");
-                    button.attr("class", classAttr);
-                    button.text(episodes[key].title);
-                    item.append(epid, epname, showid, button, csrf);
-                    // Add it to the list:
-                    seasonlist[Season].find(".panel-body").append(item);
-                    list.append(seasonlist[Season])
-                }
-
-                // Finally, return the constructed list:
-                return list;
-            }
-            $('#episodeList').append(makeUL(episodes));
-
-        </script>
-    {% else %}
-        <script>
-
-            var episodes = {{ jsoneps|safe }};
-            var seen = {{ jsonseen|safe }};
-
-
-            function makeUL(array) {
-                // Create the list element:
-                var list = $("<div></div>");
-
-                for (key in episodes) {
-                    // Create the list item:
-                    var item = $("<form></form>");
-                    item.attr("action", "{% url 'links' %}");
-                    item.attr("method", "post");
-
-                    var epid = $("<input></input>");
-                    epid.attr("type", "hidden");
-                    epid.attr("name", "epid");
-                    epid.attr("value", episodes[key].id);
-
-                    var epname = $("<input></input>");
-                    epname.attr("type", "hidden");
-                    epname.attr("name", "epname");
-                    epname.attr("value", episodes[key].title);
-
-                    var showid = $("<input></input>");
-                    showid.attr("type", "hidden");
-                    showid.attr("name", "showid");
-                    showid.attr("value", {{ showid }});
-
-                    var csrf = $("{% csrf_token %}");
-                    var classAttr = "list-group-item ";
-                    if (seen.length != 0) {
-                        if (seen.indexOf(episodes[key].id) >= 0) {
-                            //do something
-                            classAttr += "list-group-item-info";
-                        }
-                    }
-
-                    var button = $("<button></button>");
-                    button.attr("value", "{{ title }}");
-                    button.attr("name", "foo");
-                    button.attr("class", classAttr);
-                    button.text(episodes[key].title);
-                    item.append(epid, epname, showid, button, csrf);
-                    // Add it to the list:
-                    list.append(item);
-                }
-
-                // Finally, return the constructed list:
-                return list;
-            }
-            $('#episodeList').append(makeUL(episodes));
-
-            // JQuery code to be added in here.
-
-
-        </script>
-    {% endif %}
     <script>
         if ({{ isfav|lower }}) {
             $("i.glyphicon").removeClass("glyphicon-heart-empty");
             $("i.glyphicon").addClass("glyphicon-heart");
         }
         var showid = {{ showid }};
+        var seen = {{ jsonseen|safe }};
+        function buildDetails() {
+            $.ajax({
+                url: '/api/media/getDetails',
+                data: {
+                    'id': showid
+                },
+                dataType: 'json',
+                success: function (show) {
+                    console.log(show.show);
 
+
+                    var list = $("<div></div>");
+                    var seasonlist = [];
+                    var episodes = show.show.posts;
+                    console.log(episodes.length);
+                    isshow = episodes.length > 10;
+                    $("img#poster").attr("src",show.show.poster);
+                    $("span#title").text(show.show.title);
+                    $("span#year").text(show.show.startyear);
+                    $("span#rating").text(show.show.rating);
+                    $("p#desc").text(show.show.desc);
+                    for (key in episodes) {
+
+                        //console.log(posts[key].id)
+                        if (isshow) {
+                            // Create the list item:
+                            var srctext = episodes[key].title;
+                            newtext = srctext.match(/S(\d?\d)E/g)[0];
+                            var Season = parseInt(newtext.replace(/^[^0-9]+/, ''), 10);
+                            if (typeof seasonlist[Season] !== 'undefined') {
+                            } else {
+                                seasonlist[Season] = $('<div class="panel panel-default" style="margin-bottom: 1px;"> <div class="panel-heading"> <h4 class="panel-title"> <a data-toggle="collapse" data-parent="#accordion" href="#collapse' + Season + '"> Season ' + Season + '</a> </h4> </div> <div id="collapse' + Season + '" class="panel-collapse collapse"> <div class="panel-body" style="padding: 1px;"></div> </div></div>');
+                            }
+                            var item = $("<form></form>");
+                            item.attr("action", "{% url 'links' %}");
+                            item.attr("method", "post");
+
+                            var epid = $("<input></input>");
+                            epid.attr("type", "hidden");
+                            epid.attr("name", "epid");
+                            epid.attr("value", episodes[key].id);
+
+                            var epname = $("<input></input>");
+                            epname.attr("type", "hidden");
+                            epname.attr("name", "epname");
+                            epname.attr("value", episodes[key].title);
+
+                            var showid = $("<input></input>");
+                            showid.attr("type", "hidden");
+                            showid.attr("name", "showid");
+                            showid.attr("value", {{ showid }});
+
+                            var csrf = $("{% csrf_token %}");
+                            var classAttr = "list-group-item ";
+                            if (seen.length !== 0) {
+                                if (seen.indexOf(episodes[key].id) >= 0) {
+                                    //do something
+                                    classAttr += "list-group-item-info";
+                                }
+                            }
+
+                            var button = $("<button></button>");
+                            button.attr("value", "{{ title }}");
+                            button.attr("name", "foo");
+                            button.attr("class", classAttr);
+                            button.text(episodes[key].title);
+                            item.append(epid, epname, showid, button, csrf);
+                            // Add it to the list:
+                            seasonlist[Season].find(".panel-body").append(item);
+                            list.append(seasonlist[Season])
+                        } else {
+                            var item = $("<form></form>");
+                            item.attr("action", "{% url 'links' %}");
+                            item.attr("method", "post");
+
+                            var epid = $("<input></input>");
+                            epid.attr("type", "hidden");
+                            epid.attr("name", "epid");
+                            epid.attr("value", episodes[key].id);
+
+                            var epname = $("<input></input>");
+                            epname.attr("type", "hidden");
+                            epname.attr("name", "epname");
+                            epname.attr("value", episodes[key].title);
+
+                            var showid = $("<input></input>");
+                            showid.attr("type", "hidden");
+                            showid.attr("name", "showid");
+                            showid.attr("value", {{ showid }});
+
+                            var csrf = $("{% csrf_token %}");
+                            var classAttr = "list-group-item ";
+                            if (seen.length != 0) {
+                                if (seen.indexOf(episodes[key].id) >= 0) {
+                                    //do something
+                                    classAttr += "list-group-item-info";
+                                }
+                            }
+
+                            var button = $("<button></button>");
+                            button.attr("value", "{{ title }}");
+                            button.attr("name", "foo");
+                            button.attr("class", classAttr);
+                            button.text(episodes[key].title);
+                            item.append(epid, epname, showid, button, csrf);
+                            // Add it to the list:
+                            list.append(item);
+                        }
+                    }
+                    $('#episodeList').append(list);
+                    $("div#loader").attr("style", "display:none;");
+                    $("div#thecontent").attr("style", "");
+
+
+
+                }
+            });
+        }
         function getRecommended() {
             $.ajax({
                 url: 'https://moviegrabber.tv/api/account/fiverecommended',
@@ -198,13 +196,13 @@
                         show = links[id];
 
                         var item = $("<a></a>");
-                        item.attr("href", "/post/" + show.showid + "/");
+                        item.attr("href", "/post/" + show.showid + "/" + show.showname + "/");
                         item.attr("class", "list-group-item col-md-6");
                         item.attr("style", "color: inherit;text-decoration: inherit;");
 
                         var wrapper = $("<div></div>");
                         wrapper.attr("class", "panel-body media-list");
-                        wrapper.attr("style", "padding: 1px;")
+                        wrapper.attr("style", "padding: 1px;");
 
                         var imagewrapper = $("<div></div>");
                         imagewrapper.attr("class", "col-md-2");
@@ -232,9 +230,9 @@
             });
         }
 
-        getRecommended()
+        getRecommended();
         $(document).ready(function () {
-
+            buildDetails();
 
             $("i.glyphicon").click(function () {
                 var thiselement = this;
