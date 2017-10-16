@@ -31,27 +31,25 @@
     <link href="https://vjs.zencdn.net/5.18.4/video-js.css" rel="stylesheet">
     <!-- If you'd like to support IE8 -->
     <script src="https://vjs.zencdn.net/ie8/1.1.2/videojs-ie8.min.js"></script>
-    <script src="{% static 'notifications/notify.js' %}" type="text/javascript"></script>
-    {% register_notify_callbacks callbacks='fill_notification_list,fill_notification_badge' %}
     <title>{{ pagename }} - MovieGrabber</title>
     <!-- Latest compiled and minified CSS -->
-    {% if request.user.profile.night_mode %}
-        <link rel="stylesheet" href="https://bootswatch.com/darkly/bootstrap.min.css">
-        <style>
-            .list-group-item:hover {
-                background-color: #272727 !important;
-            }
-        </style>
-    {% else %}
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
-              integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
-              crossorigin="anonymous">
 
-        <!-- Optional theme -->
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
-              integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp"
-              crossorigin="anonymous">
-    {% endif %}
+    <link rel="stylesheet" href="https://bootswatch.com/darkly/bootstrap.min.css">
+    <style>
+        .list-group-item:hover {
+            background-color: #272727 !important;
+        }
+    </style>
+    <!--
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+          crossorigin="anonymous">-->
+
+    <!-- Optional theme -->
+    <!--
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
+          integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp"
+          crossorigin="anonymous">-->
     <!-- Latest compiled and minified JavaScript -->
     <script src="{% static "js/bootstrap.min.js" %}"></script>
 
@@ -113,12 +111,15 @@
                     <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button"
                            aria-haspopup="true" aria-expanded="false">
-                            <span>{{ user.username }}</span>{% live_notify_badge classes="badge badge-margin" %}<span class="caret"></span></a>
+                            <span>{{ user.username }}</span><span
+                                class="caret"></span></a>
                         <ul class="dropdown-menu">
                             {% if user.is_staff %}
                                 <li><a href="/admin/">AdminCP</a></li>
                             {% endif %}
-                            <li><a href="{% url 'profile' %}">Settings {% live_notify_badge classes="badge badge-margin" %}</a></li>
+                            <li>
+                                <a href="{% url 'profile' %}">Settings {% live_notify_badge classes="badge badge-margin" %}</a>
+                            </li>
 
                             <li role="separator" class="divider"></li>
                             <li><a href="{% url "logout" %}">Logout</a></li>
