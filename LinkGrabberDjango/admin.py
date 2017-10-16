@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.models import User
-from .models import watched, Profile, favourite, FeatureRequest
+from .models import watched, Profile, favourite, FeatureRequest, Setting
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 # Register your models here.
@@ -35,3 +35,5 @@ class FeatureAdmin(admin.ModelAdmin):
     search_fields = ['user']
 
 admin.site.register(FeatureRequest, FeatureAdmin)
+
+admin.site.register(Setting)

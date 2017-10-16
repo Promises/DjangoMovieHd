@@ -11,6 +11,14 @@ from django.dispatch import receiver
 from django.utils import timezone
 
 
+
+class Setting(models.Model):
+    Status = models.CharField(max_length=100, default="outdated")
+    AppVersion = models.CharField(max_length=100)
+    def __unicode__(self):
+        return self.Status
+
+
 class watched(models.Model):
     user = models.CharField(max_length=100)
     epid = models.CharField(max_length=50)

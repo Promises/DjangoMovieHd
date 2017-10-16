@@ -276,20 +276,6 @@ class UserFormView(View):
             user.set_password(password)
             user.save()
 
-            # from_addr = 'henning@henning.tech'
-            # to_addrs = ['henning.ber@gmail.com']
-            # msg = "\r\n".join([
-            #   "From: henning@henning.tech",
-            #   "To: henning.ber@gmail.com",
-            #   "Subject: New User Registration",
-            #   "",
-            #   "New User registered " + username
-            #   ])
-            # s = SMTP()
-            # s.connect('smtp.webfaction.com:587')
-            # s.login('henningtech', 'He569348')
-            # s.sendmail(from_addr, to_addrs, msg)
-            # s.quit()
 
             user = authenticate(username=username, password=password)
             if user is not None:

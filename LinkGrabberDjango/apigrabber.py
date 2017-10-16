@@ -2,20 +2,24 @@ import base64
 import hashlib
 import json
 import time
-from pyimei import ImeiSupport
 import requests
+from django.utils import timezone
+from LinkGrabberDjango.models import Setting
+from pyimei import ImeiSupport
 from Crypto import Random
 from Crypto.Cipher import AES
-from bs4 import BeautifulSoup
 import sys
 reload(sys)
+from .lib import requests_cache
+
 sys.setdefaultencoding("utf8")
 
 key = "darth19@1234bhgdrasew@1094561234"
 bs = 32
-time = str(int(round(time.time() * 1000)))[0:10]
+currenttimems = str(int(round(time.time() * 1000)))[0:10]
 baseurl = "http://appmoviehd.info/admin/index.php/apiandroid2/"
 
+requests_cache.install_cache('movieshd_cache', backend='sqlite', expire_after=30,ignored_parameters=['time',"os", "version","token", "tokengoogle","ads","deviceid"])
 
 def encrypt(raw):
     raw = _pad(raw)
@@ -40,57 +44,47 @@ def _unpad(s):
 
 
 def getToken():
-    result = requests.get("http://appmoviehd.info/")
-    c = result.content
-    soup = BeautifulSoup(c,"lxml")
-    versiontxt = (soup.find_all("span", class_="version")[0].string)
-    version = "".join(_ for _ in versiontxt if _ in ".1234567890")
-    version = "4.5.4"
-    token = "ttteam@android@122334" + time
+    #result = requests.get("http://appmoviehd.info/")
+    #c = result.content
+    #soup = BeautifulSoup(c,"lxml")
+    #versiontxt = (soup.find_all("span", class_="version")[0].string)
+    #version = "".join(_ for _ in versiontxt if _ in ".1234567890")
+    version = Setting.objects.get(Status="Current").AppVersion
+    token = "ttteam@android@122334" + currenttimems
     token = hashlib.md5(token.encode('utf-8')).hexdigest().upper()
-    print(version)
-    params = "os=android" + "&version=" + version + "&token=" + token +"&tokengoogle=" + "&time=" + time + "&ads=0&deviceid="+ImeiSupport.generateNew()
-
+    params = {'os': 'android', 'version': version, 'token': token, 'tokengoogle': '', 'time': currenttimems, 'ads': '0','deviceid': ImeiSupport.generateNew() }
     return params
 
-
-def createmainlisting(name):
-    # Once we're done creating them, we just add the items to the menu
-    #print name
-
-    videourl = baseurl + "movies?type=search&keyword=" + name + "&page=" + "1" + "&count=5000&"
-    r = requests.get(videourl + getToken()).text
-    print(videourl + getToken())
+def apirequest(suffix, apiparams):
+    params = getToken().copy()
+    params.update(apiparams)
+    response = requests.get(baseurl + suffix,params=params)
+    r = response.text
     testtext = decrypt(r)
-    print(testtext)
     text = testtext[testtext.index("{"):][:-1]
+    jsonResponse = json.loads(text)
+    return jsonResponse
 
-    videos2 = json.loads(text)
+def getpopular(type):
+    params = {'type': 'updated', 'page': '1', 'count':'10'}
+    suffix = type
+    videos2 = apirequest(suffix,params)
 
     return videos2["films"]
 
-
-def getpopular(type):
-    videourl = baseurl + type + "?type=updated&page=" + "1" + "&count=10&"
-    r = requests.get(videourl + getToken()).text
-
-    testtext = decrypt(r)
-    text = testtext[testtext.index("{"):][:-1]
-    print(text)
-    videos2 = json.loads(text)
+def createmainlisting(name):
+    params = {'type': 'search', 'keyword': name, 'page':'1','count':'10'}
+    suffix = "movies"
+    videos2 = apirequest(suffix,params)
 
     return videos2["films"]
 
 
 def createdetails(id):
-    idget = baseurl + "detail?id=" + id + "&page=1&count=-1&"
-    r = requests.get(idget + getToken()).text
-    # xbmc.log(r)
-    # xbmc.log(baseurl + getToken())
-    testtext = decrypt(r)
-    text = testtext[testtext.index("{"):][:-1]
 
-    videos2 = json.loads(text)
+    params = {'id': id, 'page':'1','count':'-1'}
+    suffix = "detail"
+    videos2 = apirequest(suffix,params)
 
     return {"posts": videos2["chapters"],
             "desc": videos2["desc"],
@@ -104,14 +98,32 @@ def createdetails(id):
 
 
 def getstreams(id):
-    streamurl = baseurl + "stream?chapterid=" + id + "&page=1&count=-1&"
-    r = requests.get(streamurl + getToken()).text
-    test3 = decrypt(r)
-    text3 = test3[test3.index("{"):][:-1]
-    videos3 = json.loads('{"bar":[' + text3 + "}")
-    print test3
-    return videos3["bar"]
+    with requests_cache.disabled():
+        streamurl = baseurl + "stream?chapterid=" + id + "&page=1&count=-1&"
+        r = requests.get(streamurl, params=getToken()).text
+        test3 = decrypt(r)
+        text3 = test3[test3.index("{"):][:-1]
+        videos3 = json.loads('{"bar":[' + text3 + "}")
+        print test3
+        return videos3["bar"]
 
+
+
+
+def getToplist(type, page, sort):
+    allvids = []
+    notlast = "yes"
+    currentpage = 1
+
+    while notlast == "yes":
+        params = {'type': sort, 'page': str(currentpage), 'count': '5000'}
+        suffix = type
+        videos2 = apirequest(suffix, params)
+        allvids += videos2["films"]
+        notlast = videos2["more"]
+        currentpage += 1
+
+    return allvids
 
 def find_between(s, first, last):
     try:
@@ -121,20 +133,7 @@ def find_between(s, first, last):
     except ValueError:
         return ""
 
-
-def getToplist(type, page, sort):
-    allvids = []
-    notlast = "yes"
-    currentpage = 1
-
-    while notlast == "yes":
-        videourl = baseurl + type + "?type=" + sort + "&page=" + str(currentpage) + "&count=5000&"
-        r = requests.get(videourl + getToken()).text
-        testtext = decrypt(r)
-        text = testtext[testtext.index("{"):][:-1]
-        videos2 = json.loads(text)
-        allvids += videos2["films"]
-        notlast = videos2["more"]
-        currentpage += 1
-
-    return allvids
+def testtime():
+    start_time = time.time()
+    print getToplist("movies",1,"popular")
+    print("---- %s seconds ----" % (time.time() - start_time))
